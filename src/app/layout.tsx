@@ -30,7 +30,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${magica.variable} ${mono.variable} h-full antialiased`}>
-      <body className="min-h-full bg-white font-sans text-[14px] leading-5 text-[#1b1b1b]">
+      <body className="min-h-full bg-white font-sans text-[14px] font-medium leading-5 text-[#1b1b1b]">
         <Providers>
           <AppShell>{children}</AppShell>
         </Providers>

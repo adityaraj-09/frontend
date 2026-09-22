@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { chatApi, messageApi } from "@/lib/api/services";
 import { ApiError } from "@/lib/api/client";
 import { queryKeys } from "@/lib/query/keys";
+import { seedPendingMessages } from "@/hooks/use-messages";
 import { useComposerStore } from "@/stores/composer";
 import { useRunSessionStore } from "@/stores/run-session";
 
@@ -21,29 +22,45 @@ export function useSendMessage(chatId?: string) {
   const reset = useComposerStore((s) => s.reset);
   const setError = useComposerStore((s) => s.setError);
   const setActive = useRunSessionStore((s) => s.setActive);
+  const setPending = useRunSessionStore((s) => s.setPending);
 
   return useMutation({
     mutationFn: async () => {
       const trimmed = text.trim();
       if (!trimmed) throw new ApiError("Write a message first", 400, "INVALID_REQUEST");
       const clientMessageId = crypto.randomUUID();
+      const files = [...attachmentIds];
+      const planning = planMode;
       let targetId = chatId ?? draftChatId ?? undefined;
       if (!targetId) {
         const created = await chatApi.create({
           title: trimmed.slice(0, 80),
         });
         targetId = created.id;
+        queryClient.setQueryData(queryKeys.chat(created.id), created);
       }
+
+      const pending = {
+        chatId: targetId,
+        text: trimmed,
+        userId: clientMessageId,
+        assistantId: crypto.randomUUID(),
+        createdAt: new Date().toISOString(),
+      };
+      setPending(pending);
+      seedPendingMessages(queryClient, pending);
+      reset();
+      if (!chatId) router.push(`/chat/${targetId}`);
+
       const sent = await messageApi.send(targetId, {
         text: trimmed,
         clientMessageId,
-        planMode,
-        attachmentIds: attachmentIds.length ? attachmentIds : undefined,
+        planMode: planning,
+        attachmentIds: files.length ? files : undefined,
       });
       return sent;
     },
-    onSuccess: async (sent) => {
-      reset();
+    onSuccess: (sent) => {
       setActive({
         chatId: sent.chatId,
         runId: sent.runId,
@@ -51,12 +68,12 @@ export function useSendMessage(chatId?: string) {
         realtimeToken: sent.realtimeToken,
         messageId: sent.messageId,
       });
-      await queryClient.invalidateQueries({ queryKey: ["chats"] });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.messages(sent.chatId) });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.me });
-      if (!chatId) router.push(`/chat/${sent.chatId}`);
+      void queryClient.invalidateQueries({ queryKey: ["chats"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.messages(sent.chatId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.me });
     },
     onError: (error) => {
+      setPending(null);
       if (!isSignedIn) {
         openSignIn?.();
         setError("Sign in to assign a task.");

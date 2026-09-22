@@ -26,13 +26,13 @@ export function HomeHero() {
           <MagicaRobot size={40} />
           <p
             aria-label="Local time"
-            className="mt-[19px] flex items-baseline justify-center gap-1.5 text-[13px] font-medium leading-[19.5px] tracking-[0.01em] text-[#585858]"
+            className="mt-[19px] flex items-baseline justify-center gap-1.5 text-[13px] font-semibold leading-[19.5px] tracking-[0.01em] text-[#404040]"
           >
             <span>{time}</span>
-            <span className="-translate-x-[3px] -translate-y-[5px] text-[10px] font-medium leading-3">{period}</span>
+            <span className="-translate-x-[3px] -translate-y-[5px] text-[10px] font-semibold leading-3">{period}</span>
           </p>
           <h1 className="mt-1 text-[24px] font-bold leading-8 text-[#1b1b1b]">Your AI worker</h1>
-          <p className="mt-2 text-[14px] font-medium leading-6 text-[#585858]">Work at the speed of thought.</p>
+          <p className="mt-2 text-[14px] font-semibold leading-6 text-[#404040]">Work at the speed of thought.</p>
           <div className="mt-12 w-full">
             <Composer />
           </div>
@@ -48,7 +48,7 @@ export function HomeHero() {
               role="tab"
               aria-selected={tab === item}
               className={cn(
-                "h-[34px] shrink-0 rounded-[10px] px-2.5 text-[14px] font-medium leading-5 text-[#585858]",
+                "h-[34px] shrink-0 rounded-[10px] px-2.5 text-[14px] font-semibold leading-5 text-[#404040]",
                 tab === item && "bg-[#f1f1f1] text-[#181818]",
               )}
               onClick={() => setTab(item)}

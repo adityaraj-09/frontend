@@ -2,10 +2,9 @@
 
 import {
   ClerkProvider as RealClerkProvider,
-  SignedIn as RealSignedIn,
-  SignedOut as RealSignedOut,
   SignInButton as RealSignInButton,
   SignUpButton as RealSignUpButton,
+  useAuth as realUseAuth,
   useClerk as realUseClerk,
   useUser as realUseUser,
 } from "@clerk/nextjs";
@@ -33,12 +32,26 @@ export function ClerkProvider({ children }: { children: ReactNode }) {
 
 export function SignedIn({ children }: { children: ReactNode }) {
   if (!clerkConfigured) return null;
-  return <RealSignedIn>{children}</RealSignedIn>;
+  return <AuthGate mode="signed-in">{children}</AuthGate>;
 }
 
 export function SignedOut({ children }: { children: ReactNode }) {
   if (!clerkConfigured) return children;
-  return <RealSignedOut>{children}</RealSignedOut>;
+  return <AuthGate mode="signed-out">{children}</AuthGate>;
+}
+
+function AuthGate({
+  mode,
+  children,
+}: {
+  mode: "signed-in" | "signed-out";
+  children: ReactNode;
+}) {
+  const { isLoaded, isSignedIn } = realUseAuth();
+  if (!isLoaded) return null;
+  const visible = mode === "signed-in" ? Boolean(isSignedIn) : !isSignedIn;
+  if (!visible) return null;
+  return children;
 }
 
 export function SignInButton({

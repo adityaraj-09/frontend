@@ -35,6 +35,33 @@ vi.mock("@/hooks/use-uppy-upload", () => ({
   }),
 }));
 
+vi.mock("@/hooks/use-queries", () => ({
+  useLibraryQuery: () => ({
+    data: {
+      pages: [
+        {
+          items: [
+            {
+              id: "11111111-1111-1111-1111-111111111111",
+              origin: "UPLOAD",
+              filename: "chart.png",
+              mimeType: "image/png",
+              url: "https://cdn.example/chart.png",
+              thumbnailUrl: null,
+              createdAt: new Date().toISOString(),
+            },
+          ],
+        },
+      ],
+    },
+    isError: false,
+    isSuccess: true,
+    hasNextPage: false,
+    isFetchingNextPage: false,
+    fetchNextPage: vi.fn(),
+  }),
+}));
+
 function wrap(ui: ReactElement) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return (
@@ -70,13 +97,40 @@ describe("Composer", () => {
     useComposerStore.setState({
       text: "Crop this photo",
       pendingFiles: [
-        { id: "file-1", name: "dog.png", progress: 40, status: "uploading" },
+        { id: "file-1", name: "dog.png", progress: 40, status: "uploading", previewUrl: "blob:dog" },
       ],
     });
     render(wrap(<Composer />));
-    expect(screen.getByText("dog.png")).toBeInTheDocument();
-    expect(screen.getByText("40%")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "dog.png" })).toHaveAttribute("src", "blob:dog");
+    expect(screen.getByRole("button", { name: "Remove dog.png" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Send message" })).toBeDisabled();
+  });
+
+  it("opens the full library dialog when selecting an asset for a new task", async () => {
+    const user = userEvent.setup();
+    render(wrap(<Composer />));
+    await user.click(screen.getByRole("button", { name: "Attach files" }));
+    await user.click(screen.getByRole("button", { name: "Select Asset" }));
+    expect(screen.getByRole("heading", { name: "Select from library" })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Search media...")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "My Uploads" })).toBeInTheDocument();
+    await user.click(screen.getAllByRole("img", { name: "chart.png" })[0]);
+    expect(useComposerStore.getState().attachmentIds).toEqual(["11111111-1111-1111-1111-111111111111"]);
+    expect(screen.queryByText("attached")).not.toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "chart.png" })).toHaveAttribute("src", "https://cdn.example/chart.png");
+    expect(screen.getByRole("button", { name: "Remove chart.png" })).toBeInTheDocument();
+  });
+
+  it("renders a library-only attachment as a normal thumbnail", () => {
+    useComposerStore.setState({
+      attachmentIds: ["11111111-1111-1111-1111-111111111111"],
+    });
+    render(wrap(<Composer />));
+    expect(screen.getByRole("img", { name: "chart.png" })).toHaveAttribute(
+      "src",
+      "https://cdn.example/chart.png",
+    );
+    expect(screen.queryByText("attached")).not.toBeInTheDocument();
   });
 
   it("retries a failed tus upload from the chip", async () => {

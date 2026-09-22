@@ -4,6 +4,7 @@ import {
   apiKeyCreatedSchema,
   apiKeyListSchema,
   attachmentListSchema,
+  attachmentRefSchema,
   chatListSchema,
   chatSchema,
   completeUploadSchema,
@@ -151,6 +152,12 @@ export const uploadApi = {
     if (query?.limit) params.set("limit", String(query.limit));
     const suffix = params.size ? `?${params}` : "";
     return apiJson(`/api/attachments${suffix}`, attachmentListSchema);
+  },
+  reference(url: string) {
+    return apiJson("/api/attachments/reference", attachmentRefSchema, {
+      method: "POST",
+      body: JSON.stringify({ url }),
+    });
   },
 };
 

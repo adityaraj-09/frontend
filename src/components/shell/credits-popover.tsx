@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 
 function CreditsBadge({ balance }: { balance: string }) {
   return (
-    <span className="inline-flex h-8 items-center gap-2 rounded-full border border-[#ededed] bg-[#fafafa] px-3 py-1 text-[14px] font-normal leading-5 text-[#1b1b1b]">
+    <span className="inline-flex h-8 items-center gap-2 rounded-full border border-[#ededed] bg-[#fafafa] px-3 py-1 text-[14px] font-semibold leading-5 text-[#1b1b1b]">
       <Sparkle className="size-3.5 shrink-0 text-[#343434]" strokeWidth={1.75} aria-hidden />
       {formatCredits(balance)}
     </span>
@@ -34,7 +34,7 @@ export function CreditsPopover({ balance }: { balance: string }) {
         <CreditsBadge balance={balance} />
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0">
-        <div className="border-b border-[#ededed] px-3 py-2 text-[13px] font-medium">
+        <div className="border-b border-[#ededed] px-3 py-2 text-[13px] font-semibold">
           Balance {formatCredits(ledger.data?.creditBalance ?? balance)}
         </div>
         <ul className="max-h-72 overflow-y-auto py-1">
@@ -42,13 +42,13 @@ export function CreditsPopover({ balance }: { balance: string }) {
             <li key={entry.id} className="flex items-start justify-between gap-3 px-3 py-2 text-[12px]">
               <div>
                 <div className="text-[#1b1b1b]">{entry.reason}</div>
-                <div className="text-[#a1a1aa]">{entry.type}</div>
+                <div className="font-medium text-[#404040]">{entry.type}</div>
               </div>
               <div className="tabular-nums text-[#1b1b1b]">{entry.amount}</div>
             </li>
           ))}
           {!ledger.data?.items.length ? (
-            <li className="px-3 py-4 text-[12px] text-[#a1a1aa]">No ledger entries yet.</li>
+            <li className="px-3 py-4 text-[12px] font-medium text-[#404040]">No ledger entries yet.</li>
           ) : null}
         </ul>
       </PopoverContent>

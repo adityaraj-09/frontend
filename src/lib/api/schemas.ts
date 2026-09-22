@@ -72,6 +72,7 @@ export const contentBlockSchema = z.discriminatedUnion("type", [
     toolName: z.string(),
     output: z.unknown().optional(),
     error: z.string().optional(),
+    durationMs: z.number().int().nonnegative().optional(),
   }),
   z.object({
     type: z.literal("asset"),
@@ -224,14 +225,40 @@ export const completeUploadSchema = z.object({
   ),
 });
 
+export const attachmentRefSchema = z.object({
+  id: z.string().uuid(),
+  filename: z.string(),
+  mimeType: z.string(),
+  url: z.string(),
+});
+
+/** GET /api/attachments — library rows do not include message `status`. */
+export const libraryAttachmentSchema = z.object({
+  id: z.string().uuid(),
+  chatId: z.string().uuid().nullable().optional(),
+  origin: z.string().optional(),
+  filename: z.string(),
+  mimeType: z.string(),
+  byteSize: z.number().optional(),
+  url: z.string().nullable().optional(),
+  thumbnailUrl: z.string().nullable().optional(),
+  width: z.number().nullable().optional(),
+  height: z.number().nullable().optional(),
+  durationMs: z.number().nullable().optional(),
+  createdAt: z.string().optional(),
+  expiresAt: z.string().nullable().optional(),
+  status: z.string().optional(),
+});
+
 export const attachmentListSchema = z.object({
-  items: z.array(attachmentSchema),
+  items: z.array(libraryAttachmentSchema),
   nextCursor: z.string().nullable(),
 });
 
 export type Chat = z.infer<typeof chatSchema>;
 export type Message = z.infer<typeof messageSchema>;
 export type Attachment = z.infer<typeof attachmentSchema>;
+export type LibraryAttachment = z.infer<typeof libraryAttachmentSchema>;
 export type SendResponse = z.infer<typeof sendResponseSchema>;
 export type Me = z.infer<typeof meSchema>;
 export type RunSnapshot = z.infer<typeof runSnapshotSchema>;

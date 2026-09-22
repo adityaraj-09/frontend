@@ -60,7 +60,7 @@
   --secondary: #f7f7f7;
   --secondary-foreground: #181818;
   --muted: #f7f7f7;
-  --muted-foreground: #737373;
+  --muted-foreground: #404040;
   --accent: #f4f4f5;
   --accent-foreground: #181818;
   --destructive: #b42318;
@@ -125,7 +125,7 @@
     @apply bg-background text-foreground;
     font-size: 14px;
     line-height: 20px;
-    font-weight: 400;
+    font-weight: 500;
   }
   html {
     @apply font-sans;

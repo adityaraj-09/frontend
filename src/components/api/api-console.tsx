@@ -28,16 +28,16 @@ export function ApiConsole() {
     <div className="h-full overflow-y-auto">
       <div className="mx-auto w-full max-w-[880px] px-8 pb-16 pt-5">
         <h1 className="text-[30px] font-bold leading-9 text-[#1b1b1b]">API / MCP</h1>
-        <p className="mt-2 max-w-[640px] text-[14px] font-medium leading-6 text-[#585858]">
+        <p className="mt-2 max-w-[640px] text-[14px] font-semibold leading-6 text-[#404040]">
           Public routes accept an API key. Create one here, then call <code className="text-[#1b1b1b]">/api/v1</code> with{" "}
           <code className="text-[#1b1b1b]">Authorization: Bearer gxk_live_…</code>
         </p>
 
         <SignedOut>
-          <p className="mt-6 text-[14px] leading-6 text-[#585858]">Sign in to create keys and webhook endpoints.</p>
+          <p className="mt-6 text-[14px] font-medium leading-6 text-[#404040]">Sign in to create keys and webhook endpoints.</p>
           <Link
             href="/sign-in"
-            className="mt-4 inline-flex h-8 items-center rounded-full bg-[#1b1b1b] px-3 text-[14px] font-medium text-white"
+            className="mt-4 inline-flex h-8 items-center rounded-full bg-[#1b1b1b] px-3 text-[14px] font-semibold text-white"
           >
             Sign in
           </Link>
@@ -50,16 +50,16 @@ export function ApiConsole() {
 
         <section className="mt-10">
           <h2 className="text-[16px] font-semibold leading-6 text-[#1b1b1b]">Public routes</h2>
-          <p className="mt-1 text-[13px] leading-5 text-[#777777]">
+          <p className="mt-1 text-[13px] font-medium leading-5 text-[#404040]">
             These stay on the API key. The signed-in app does not send your session to them.
           </p>
           <ul className="mt-4 divide-y divide-[#ededed] border-y border-[#ededed]">
             {PUBLIC_ROUTES.map((route) => (
               <li key={`${route.method} ${route.path}`} className="flex gap-4 py-3">
-                <span className="w-16 shrink-0 text-[12px] font-medium leading-5 text-[#585858]">{route.method}</span>
+                <span className="w-16 shrink-0 text-[12px] font-semibold leading-5 text-[#404040]">{route.method}</span>
                 <div className="min-w-0">
-                  <code className="block truncate text-[13px] leading-5 text-[#1b1b1b]">{route.path}</code>
-                  <p className="text-[13px] leading-5 text-[#777777]">{route.detail}</p>
+                  <code className="block truncate text-[13px] font-medium leading-5 text-[#1b1b1b]">{route.path}</code>
+                  <p className="text-[13px] font-medium leading-5 text-[#404040]">{route.detail}</p>
                 </div>
               </li>
             ))}
@@ -111,12 +111,12 @@ function KeysSection() {
           onChange={(event) => setName(event.target.value)}
           placeholder="Key name"
           aria-label="Key name"
-          className="h-10 min-w-[220px] flex-1 rounded-[10px] bg-[#f7f7f7] px-3 text-[14px] leading-5 text-[#1b1b1b] outline-none placeholder:text-[#777777]"
+          className="h-10 min-w-[220px] flex-1 rounded-[10px] bg-[#f7f7f7] px-3 text-[14px] font-medium leading-5 text-[#1b1b1b] outline-none placeholder:text-[#585858]"
         />
         <button
           type="submit"
           disabled={!name.trim() || create.isPending}
-          className="inline-flex h-8 items-center rounded-full bg-[#1b1b1b] px-3 text-[14px] font-medium text-white disabled:opacity-40"
+          className="inline-flex h-8 items-center rounded-full bg-[#1b1b1b] px-3 text-[14px] font-semibold text-white disabled:opacity-40"
         >
           Create key
         </button>
@@ -164,7 +164,7 @@ function WebhooksSection() {
   return (
     <section className="mt-10">
       <h2 className="text-[16px] font-semibold leading-6 text-[#1b1b1b]">Webhook endpoints</h2>
-      <p className="mt-1 text-[13px] leading-5 text-[#777777]">
+      <p className="mt-1 text-[13px] font-medium leading-5 text-[#404040]">
         Deliveries include <code>x-galaxy-signature</code> and <code>x-galaxy-timestamp</code>. The signing secret is shown once.
       </p>
       <form
@@ -181,12 +181,12 @@ function WebhooksSection() {
             onChange={(event) => setUrl(event.target.value)}
             placeholder="https://example.com/hooks/galaxy"
             aria-label="Webhook URL"
-            className="h-10 min-w-[220px] flex-1 rounded-[10px] bg-[#f7f7f7] px-3 text-[14px] leading-5 text-[#1b1b1b] outline-none placeholder:text-[#777777]"
+            className="h-10 min-w-[220px] flex-1 rounded-[10px] bg-[#f7f7f7] px-3 text-[14px] font-medium leading-5 text-[#1b1b1b] outline-none placeholder:text-[#585858]"
           />
           <button
             type="submit"
             disabled={!url.trim() || events.length === 0 || create.isPending}
-            className="inline-flex h-8 items-center rounded-full bg-[#1b1b1b] px-3 text-[14px] font-medium text-white disabled:opacity-40"
+            className="inline-flex h-8 items-center rounded-full bg-[#1b1b1b] px-3 text-[14px] font-semibold text-white disabled:opacity-40"
           >
             Add endpoint
           </button>
@@ -197,7 +197,7 @@ function WebhooksSection() {
             return (
               <label
                 key={eventName}
-                className="inline-flex h-8 items-center gap-2 rounded-full border border-[#ededed] bg-white px-3 text-[13px] text-[#1b1b1b]"
+                className="inline-flex h-8 items-center gap-2 rounded-full border border-[#ededed] bg-white px-3 text-[13px] font-medium text-[#1b1b1b]"
               >
                 <input
                   type="checkbox"
@@ -237,12 +237,12 @@ function SecretBanner({ label, value, onDismiss }: { label: string; value: strin
   const [copied, setCopied] = useState(false);
   return (
     <div className="mt-3 rounded-[16px] border border-[#ededed] bg-[#fafafa] p-4">
-      <p className="text-[13px] font-medium leading-5 text-[#1b1b1b]">{label} — copy it now. It will not be shown again.</p>
+      <p className="text-[13px] font-semibold leading-5 text-[#1b1b1b]">{label} — copy it now. It will not be shown again.</p>
       <code className="mt-2 block break-all text-[13px] leading-5 text-[#1b1b1b]">{value}</code>
       <div className="mt-3 flex gap-2">
         <button
           type="button"
-          className="inline-flex h-8 items-center rounded-full bg-[#1b1b1b] px-3 text-[13px] font-medium text-white"
+          className="inline-flex h-8 items-center rounded-full bg-[#1b1b1b] px-3 text-[13px] font-semibold text-white"
           onClick={() => {
             void navigator.clipboard.writeText(value).then(() => {
               setCopied(true);
@@ -253,7 +253,7 @@ function SecretBanner({ label, value, onDismiss }: { label: string; value: strin
         </button>
         <button
           type="button"
-          className="inline-flex h-8 items-center rounded-full border border-[#ededed] bg-white px-3 text-[13px] font-medium text-[#1b1b1b]"
+          className="inline-flex h-8 items-center rounded-full border border-[#ededed] bg-white px-3 text-[13px] font-semibold text-[#1b1b1b]"
           onClick={onDismiss}
         >
           Dismiss
@@ -272,20 +272,20 @@ function ItemList({
   empty: string;
   loading: boolean;
 }) {
-  if (loading) return <p className="mt-4 text-[13px] text-[#777777]">Loading…</p>;
-  if (!items.length) return <p className="mt-4 text-[13px] text-[#777777]">{empty}</p>;
+  if (loading) return <p className="mt-4 text-[13px] font-medium text-[#404040]">Loading…</p>;
+  if (!items.length) return <p className="mt-4 text-[13px] font-medium text-[#404040]">{empty}</p>;
   return (
     <ul className="mt-4 divide-y divide-[#ededed] border-y border-[#ededed]">
       {items.map((item) => (
         <li key={item.id} className="flex items-center gap-3 py-3">
           <div className="min-w-0 flex-1">
-            <div className="truncate text-[14px] leading-5 text-[#1b1b1b]">{item.title}</div>
-            <div className="truncate text-[13px] leading-5 text-[#777777]">{item.meta}</div>
+            <div className="truncate text-[14px] font-medium leading-5 text-[#1b1b1b]">{item.title}</div>
+            <div className="truncate text-[13px] font-medium leading-5 text-[#404040]">{item.meta}</div>
           </div>
           <button
             type="button"
             disabled={item.pending}
-            className="inline-flex h-8 shrink-0 items-center rounded-full border border-[#ededed] bg-white px-3 text-[13px] font-medium text-[#1b1b1b]"
+            className="inline-flex h-8 shrink-0 items-center rounded-full border border-[#ededed] bg-white px-3 text-[13px] font-semibold text-[#1b1b1b]"
             onClick={item.onAction}
           >
             {item.action}

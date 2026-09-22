@@ -24,7 +24,7 @@ export function WaitpointCard({
     setError(null);
     try {
       await waitpointApi.complete(chatId, waitpoint.waitpointId, decision);
-      await queryClient.invalidateQueries({ queryKey: queryKeys.run(chatId, "") });
+      await queryClient.invalidateQueries({ queryKey: ["run", chatId] });
       await queryClient.invalidateQueries({ queryKey: queryKeys.messages(chatId) });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not submit this decision.");
@@ -35,8 +35,8 @@ export function WaitpointCard({
 
   return (
     <div className="rounded-2xl border border-[#ededed] bg-[#fafafa] p-4">
-      <p className="text-[12px] font-medium uppercase tracking-wide text-[#737373]">{copy.kicker}</p>
-      <p className="mt-1 text-[14px] text-[#1b1b1b]">{copy.body}</p>
+      <p className="text-[12px] font-semibold uppercase tracking-wide text-[#404040]">{copy.kicker}</p>
+      <p className="mt-1 text-[14px] font-medium text-[#1b1b1b]">{copy.body}</p>
       <div className="mt-3 flex gap-2">
         <Button size="sm" disabled={busy} onClick={() => void decide("approved")}>
           {copy.approve}

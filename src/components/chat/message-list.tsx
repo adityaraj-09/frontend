@@ -2,12 +2,13 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { ChevronDown, Download, Globe, ImageIcon, Terminal, Wrench, Zap } from "lucide-react";
-import type { ContentBlock, Message, RunSnapshot, ToolLive } from "@/lib/api/schemas";
+import { Check, ChevronDown, Copy, Download, Globe, Loader2, Sparkles, Terminal, ThumbsDown, ThumbsUp, Wrench, Zap } from "lucide-react";
+import type { ContentBlock, Message, RunSnapshot } from "@/lib/api/schemas";
 import { parseBlocks } from "@/hooks/use-messages";
-import { formatDuration, toolLabel } from "@/lib/format";
+import { formatDuration, liveStepLabel, toolLabel } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { useUiStore } from "@/stores/ui";
+import { ChatImage, ChatImageMetaContext } from "./chat-image";
+import { MarkdownText, mergeAssistantText } from "./markdown-text";
 import { WaitpointCard } from "./waitpoint-card";
 
 export function MessageList({
@@ -75,7 +76,7 @@ export function MessageList({
         <div className="flex justify-center py-3">
           <button
             type="button"
-            className="text-[12px] text-[#737373]"
+            className="text-[12px] font-semibold text-[#404040]"
             disabled={isFetchingEarlier}
             onClick={() => void onLoadEarlier?.()}
           >
@@ -118,30 +119,65 @@ function UserBubble({ message }: { message: Message }) {
     .filter((block): block is Extract<ContentBlock, { type: "text" }> => block.type === "text")
     .map((block) => block.text)
     .join("\n");
+  const images = userImages(message, blocks);
+  const files = message.attachments.filter((file) => !file.mimeType.startsWith("image/"));
   return (
-    <div className="max-w-[560px] rounded-[18px] bg-[#f3f3f5] px-4 py-3 text-[14px] leading-6 text-[#1b1b1b]">
-      {text}
-      {message.attachments.length ? (
-        <div className="mt-2 flex flex-wrap gap-2">
-          {message.attachments.map((file) =>
-            file.mimeType.startsWith("image/") && (file.thumbnailUrl || file.url) ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={file.id}
-                src={file.thumbnailUrl || file.url || ""}
-                alt={file.filename}
-                className="h-16 rounded-lg object-cover"
-              />
-            ) : (
-              <span key={file.id} className="text-[12px] text-[#737373]">
+    <div className="flex justify-end">
+      <div className="max-w-[420px] rounded-[20px] bg-[#f3f3f5] p-2 text-[14px] leading-6 text-[#1b1b1b]">
+        {images.map((image) => (
+          <ChatImageMetaContext.Provider
+            key={image.url}
+            value={{
+              prompt: text,
+              createdAt: message.createdAt,
+              source: "Uploaded",
+              attachmentId: image.attachmentId,
+            }}
+          >
+            <ChatImage
+              src={image.url}
+              alt={image.alt}
+              filename={image.alt}
+              attachmentId={image.attachmentId}
+              className="h-auto w-auto max-h-[220px] max-w-[240px] rounded-[16px] object-contain"
+            />
+          </ChatImageMetaContext.Provider>
+        ))}
+        {text ? <p className={cn("px-2", images.length ? "pt-2 pb-1" : "py-1.5")}>{text}</p> : null}
+        {files.length ? (
+          <div className="flex flex-wrap gap-2 px-2 pb-1">
+            {files.map((file) => (
+              <span key={file.id} className="text-[12px] font-medium text-[#404040]">
                 {file.filename}
               </span>
-            ),
-          )}
-        </div>
-      ) : null}
+            ))}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
+}
+
+function userImages(
+  message: Message,
+  blocks: ContentBlock[],
+): Array<{ url: string; alt: string; attachmentId?: string }> {
+  const seen = new Set<string>();
+  const images: Array<{ url: string; alt: string; attachmentId?: string }> = [];
+  const push = (url: string | null | undefined, alt: string, attachmentId?: string) => {
+    if (!url || seen.has(url)) return;
+    seen.add(url);
+    images.push({ url, alt, attachmentId });
+  };
+  for (const file of message.attachments) {
+    if (file.mimeType.startsWith("image/")) push(file.url || file.thumbnailUrl, file.filename, file.id);
+  }
+  for (const block of blocks) {
+    if (block.type === "asset" && block.mimeType.startsWith("image/")) {
+      push(block.url, block.filename ?? "Uploaded image");
+    }
+  }
+  return images;
 }
 
 function AssistantTurn({
@@ -155,116 +191,134 @@ function AssistantTurn({
 }) {
   const blocks = parseBlocks(message.contentBlocks);
   const live = snapshot?.assistantMessageId === message.id || message.status === "STREAMING";
-  const toolsFromBlocks = blocks.filter(
-    (block): block is Extract<ContentBlock, { type: "tool_use" }> => block.type === "tool_use",
-  );
   const results = new Map(
     blocks
       .filter((block): block is Extract<ContentBlock, { type: "tool_result" }> => block.type === "tool_result")
       .map((block) => [block.toolCallId, block]),
   );
+  const persisted = blocks
+    .filter((block): block is Extract<ContentBlock, { type: "text" }> => block.type === "text")
+    .map((block) => block.text)
+    .join("");
+  const text = mergeAssistantText(persisted, streamText, live);
+  const leftoverStream =
+    live && streamText && persisted && streamText.startsWith(persisted)
+      ? streamText.slice(persisted.length)
+      : "";
+  const seenTools = new Set(
+    blocks.filter((block) => block.type === "tool_use").map((block) => block.toolCallId),
+  );
+  const pendingLive = (snapshot?.tools ?? []).filter((tool) => !seenTools.has(tool.toolCallId));
   const assets = blocks.filter(
     (block): block is Extract<ContentBlock, { type: "asset" }> => block.type === "asset",
   );
-  const thinking = blocks.find(
-    (block): block is Extract<ContentBlock, { type: "thinking" }> => block.type === "thinking",
-  );
-  const text = [
-    ...blocks
-      .filter((block): block is Extract<ContentBlock, { type: "text" }> => block.type === "text")
-      .map((block) => block.text),
-    live ? streamText : "",
-  ]
-    .filter(Boolean)
-    .join("");
-
-  const liveTools = snapshot?.tools ?? [];
-  const toolCount = Math.max(toolsFromBlocks.length, liveTools.length);
+  const waitpoint =
+    snapshot?.waitpoint && snapshot.waitpoint.type !== "MEDIA" && snapshot.waitpoint.status === "WAITING"
+      ? snapshot.waitpoint
+      : null;
   const failed = message.status === "FAILED" || snapshot?.status === "FAILED";
   const cancelled = message.status === "CANCELLED" || snapshot?.status === "CANCELLED";
+  const hasVisible = blocks.some((block) => block.type !== "tool_result") || Boolean(text) || pendingLive.length > 0;
 
   return (
+    <ChatImageMetaContext.Provider
+      value={{ prompt: text, createdAt: message.createdAt, source: "Generated in chat" }}
+    >
     <div className="flex flex-col gap-3">
-      {thinking ? (
-        <p className="text-[12px] text-[#a1a1aa]">
-          Thought {formatDuration(thinking.durationMs ?? snapshot?.thinkingDurationMs)}
-        </p>
-      ) : null}
-      {toolCount ? (
-        <Steps
-          tools={toolsFromBlocks}
-          live={liveTools}
-          results={results}
-          completed={message.status !== "STREAMING" && snapshot?.status !== "WORKING" && snapshot?.status !== "THINKING"}
+      {blocks.map((block, index) => {
+        if (block.type === "thinking") {
+          return (
+            <ThinkingNote
+              key={`thinking-${index}`}
+              text={block.text}
+              durationMs={block.durationMs ?? snapshot?.thinkingDurationMs}
+            />
+          );
+        }
+        if (block.type === "text") {
+          return <MarkdownText key={`text-${index}`} text={block.text} />;
+        }
+        if (block.type === "tool_use") {
+          const liveRow = snapshot?.tools?.find((row) => row.toolCallId === block.toolCallId);
+          const result = results.get(block.toolCallId);
+          return (
+            <ToolRow
+              key={block.toolCallId}
+              name={block.toolName}
+              input={block.input}
+              output={result?.output}
+              durationMs={result?.durationMs}
+              error={result?.error ?? liveRow?.errorMessage ?? undefined}
+              status={liveRow?.status ?? (result ? (result.error ? "FAILED" : "SUCCESS") : "RUNNING")}
+            />
+          );
+        }
+        if (block.type === "asset") {
+          return <AssetBlock key={`${block.url}-${index}`} asset={block} />;
+        }
+        return null;
+      })}
+      {pendingLive.map((tool) => (
+        <ToolRow
+          key={tool.toolCallId}
+          name={tool.toolName}
+          input={{}}
+          output={undefined}
+          error={tool.errorMessage ?? undefined}
+          status={tool.status}
         />
-      ) : null}
-      {text ? (
-        <div className="whitespace-pre-wrap text-[14px] leading-6 text-[#1b1b1b]">{text}</div>
-      ) : live ? (
-        <p className="text-[13px] text-[#a1a1aa]">{snapshot?.currentStep ?? "Working…"}</p>
-      ) : null}
-      {assets.map((asset) => (
-        <GeneratedAsset key={asset.url} asset={asset} />
       ))}
+      {live && leftoverStream ? <MarkdownText text={leftoverStream} /> : null}
+      {live && !persisted && streamText ? <MarkdownText text={streamText} /> : null}
+      {!hasVisible && live ? (
+        <LiveStatus currentStep={snapshot?.currentStep} status={snapshot?.status} />
+      ) : null}
+      {!live && (text || assets.length) ? (
+        <ReplyActions text={text} createdAt={message.createdAt} />
+      ) : null}
       {failed ? (
         <p role="alert" className="text-[13px] text-[#b42318]">
           {message.errorMessage || snapshot?.errorMessage || "This turn failed. Send another message to retry."}
         </p>
       ) : null}
-      {cancelled ? <p className="text-[13px] text-[#737373]">Stopped.</p> : null}
-      {live && snapshot?.waitpoint?.status === "WAITING" ? (
-        <WaitpointCard chatId={snapshot.chatId ?? message.chatId} waitpoint={snapshot.waitpoint} />
+      {cancelled ? <p className="text-[13px] text-[#404040]">Stopped.</p> : null}
+      {live && waitpoint ? (
+        <WaitpointCard chatId={snapshot?.chatId ?? message.chatId} waitpoint={waitpoint} />
       ) : null}
     </div>
+    </ChatImageMetaContext.Provider>
   );
 }
 
-function Steps({
-  tools,
-  live,
-  results,
-  completed,
+function LiveStatus({
+  currentStep,
+  status,
 }: {
-  tools: Extract<ContentBlock, { type: "tool_use" }>[];
-  live: ToolLive[];
-  results: Map<string, Extract<ContentBlock, { type: "tool_result" }>>;
-  completed: boolean;
+  currentStep?: string | null;
+  status?: string | null;
 }) {
-  const [open, setOpen] = useState(true);
-  const count = Math.max(tools.length, live.length) || tools.length;
+  return (
+    <p className="flex items-center gap-2 text-[13px] font-medium text-[#404040]">
+      <Loader2 className="size-3.5 animate-spin" />
+      {liveStepLabel(currentStep, status)}
+    </p>
+  );
+}
+
+function ThinkingNote({ text, durationMs }: { text: string; durationMs?: number | null }) {
+  const [open, setOpen] = useState(false);
+  const duration = formatDuration(durationMs);
   return (
     <div>
       <button
         type="button"
-        className={cn(
-          "flex items-center gap-1 text-[13px] text-[#737373]",
-          open && "rounded-md ring-2 ring-[#3b82f6] ring-offset-2",
-        )}
+        className="flex items-center gap-1 text-[13px] font-semibold text-[#404040]"
         onClick={() => setOpen((value) => !value)}
       >
-        {completed ? `Completed ${count} steps` : `Working · ${count} steps`}
-        <ChevronDown className={cn("size-3.5 transition", open && "rotate-180")} />
+        <ChevronDown className={cn("size-3.5", !open && "-rotate-90")} />
+        Thinking{duration ? ` · ${duration}` : ""}
       </button>
-      {open ? (
-        <div className="mt-2 flex flex-col gap-1">
-          {(tools.length ? tools : live.map((tool) => ({ toolCallId: tool.toolCallId, toolName: tool.toolName, input: {} }))).map(
-            (tool) => {
-              const liveRow = live.find((row) => row.toolCallId === tool.toolCallId);
-              const result = results.get(tool.toolCallId);
-              return (
-                <ToolRow
-                  key={tool.toolCallId}
-                  name={tool.toolName}
-                  input={tool.input}
-                  output={result?.output}
-                  error={result?.error ?? liveRow?.errorMessage ?? undefined}
-                  status={liveRow?.status ?? (result ? (result.error ? "FAILED" : "SUCCESS") : "RUNNING")}
-                />
-              );
-            },
-          )}
-        </div>
-      ) : null}
+      {open ? <p className="mt-2 max-w-[640px] text-[13px] font-medium leading-5 text-[#404040]">{text}</p> : null}
     </div>
   );
 }
@@ -273,18 +327,22 @@ function ToolRow({
   name,
   input,
   output,
+  durationMs,
   error,
   status,
 }: {
   name: string;
   input: unknown;
   output: unknown;
+  durationMs?: number;
   error?: string;
   status: string;
 }) {
   const [open, setOpen] = useState(status === "RUNNING" || name === "web_search");
   const Icon = iconFor(name);
   const success = status === "SUCCESS";
+  const running = status === "RUNNING" || status === "PENDING";
+  const duration = formatDuration(durationMs);
   return (
     <div>
       <button
@@ -292,27 +350,50 @@ function ToolRow({
         className="flex w-full items-center gap-2 rounded-lg px-1 py-1.5 text-left hover:bg-[#fafafa]"
         onClick={() => setOpen((value) => !value)}
       >
-        <Icon className={cn("size-4 stroke-[1.7]", name === "web_search" ? "text-[#2563eb]" : "text-[#a16207]")} />
-        <span className="flex-1 text-[13px] text-[#1b1b1b]">{toolLabel(name)}</span>
-        {success ? <span className="text-[#16a34a]">✓</span> : null}
-        {status === "RUNNING" ? <span className="size-1.5 animate-pulse rounded-full bg-[#737373]" /> : null}
-        {error ? <span className="text-[11px] text-[#b42318]">Failed</span> : null}
-        <ChevronDown className={cn("size-3.5 text-[#a1a1aa]", open && "rotate-180")} />
+        <Icon className={cn("size-4 stroke-[1.7]", iconTone(name))} />
+        <span className="text-[13px] font-semibold text-[#1b1b1b]">{toolLabel(name)}</span>
+        {success ? <Check className="size-3.5 text-[#16a34a]" strokeWidth={2.5} /> : null}
+        {running ? <Loader2 className="size-3.5 animate-spin text-[#404040]" /> : null}
+        {error ? <span className="text-[11px] font-semibold text-[#b42318]">Failed</span> : null}
+        {duration ? <span className="text-[12px] font-medium text-[#404040]">{duration}</span> : null}
+        <ChevronDown className={cn("ml-auto size-3.5 text-[#404040]", open && "rotate-180")} />
       </button>
       {open ? (
-        <div className="mb-2 ml-6 rounded-2xl border border-[#ededed] p-3">
+        <div className="mb-2 ml-6 rounded-2xl border border-[#ededed] bg-white p-4">
           {name === "web_search" ? (
             <WebSearchBody output={output} input={input} />
           ) : (
-            <pre className="overflow-x-auto text-[12px] leading-5 text-[#52525b]">
-              {JSON.stringify(output ?? input, null, 2)}
-            </pre>
+            <FieldList input={input} output={output} toolName={name} />
           )}
           {error ? <p className="mt-2 text-[12px] text-[#b42318]">{error}</p> : null}
         </div>
       ) : null}
     </div>
   );
+}
+
+function FieldList({ input, output, toolName }: { input: unknown; output: unknown; toolName: string }) {
+  const fields = toolFields(toolName, input, output);
+  if (!fields.length) return null;
+  return (
+    <div className="flex flex-col gap-3">
+      {fields.map((field) => (
+        <div key={field.label} className="grid grid-cols-[140px_1fr] items-start gap-3">
+          <div className="pt-0.5 text-[13px] font-semibold text-[#404040]">{field.label}</div>
+          <FieldValue value={field.value} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function FieldValue({ value }: { value: FieldValue }) {
+  if (value.kind === "image") {
+    return (
+      <ChatImage src={value.url} alt="" className="h-auto w-auto max-h-[220px] max-w-[240px] rounded-xl object-contain" />
+    );
+  }
+  return <div className="text-[13px] text-[#1b1b1b]">{value.text}</div>;
 }
 
 function WebSearchBody({ output, input }: { output: unknown; input: unknown }) {
@@ -327,8 +408,8 @@ function WebSearchBody({ output, input }: { output: unknown; input: unknown }) {
     <div>
       {query ? (
         <div className="mb-3 rounded-xl border border-[#ededed] px-3 py-2">
-          <div className="text-[11px] text-[#a1a1aa]">Queries</div>
-          <p className="text-[13px] text-[#1b1b1b]">{query}</p>
+          <div className="text-[11px] font-semibold text-[#404040]">Queries</div>
+          <p className="text-[13px] font-medium text-[#1b1b1b]">{query}</p>
         </div>
       ) : null}
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -354,8 +435,8 @@ function WebSearchBody({ output, input }: { output: unknown; input: unknown }) {
                 </div>
               )}
               <div className="p-2">
-                <div className="truncate text-[11px] text-[#737373]">{host}</div>
-                <div className="line-clamp-2 text-[12px] font-medium text-[#1b1b1b]">{title}</div>
+                <div className="truncate text-[11px] text-[#404040]">{host}</div>
+                <div className="line-clamp-2 text-[12px] font-semibold text-[#1b1b1b]">{title}</div>
               </div>
             </a>
           );
@@ -365,40 +446,168 @@ function WebSearchBody({ output, input }: { output: unknown; input: unknown }) {
   );
 }
 
-function GeneratedAsset({ asset }: { asset: Extract<ContentBlock, { type: "asset" }> }) {
-  const setArtifact = useUiStore((s) => s.setArtifact);
-  const isImage = asset.mimeType.startsWith("image/");
-  const isVideo = asset.mimeType.startsWith("video/");
+function ReplyActions({ text, createdAt }: { text: string; createdAt: string }) {
+  const [copied, setCopied] = useState(false);
+  const [vote, setVote] = useState<"up" | "down" | null>(null);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setCopied(false);
+    }
+  }
+
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#ededed]">
-      <div className="px-3 py-2 text-[11px] text-[#a1a1aa]">URL</div>
-      {isImage ? (
-        <button
-          type="button"
-          className="block w-full"
-          onClick={() => setArtifact({ title: asset.filename ?? "Image", url: asset.url, mimeType: asset.mimeType })}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={asset.url} alt={asset.filename ?? "Generated image"} className="max-h-[360px] w-full object-contain" />
-        </button>
-      ) : isVideo ? (
-        <video src={asset.url} controls className="max-h-[360px] w-full" />
-      ) : (
-        <a href={asset.url} className="flex items-center gap-2 px-3 pb-3 text-[13px] text-[#2563eb]" target="_blank">
-          {asset.filename ?? asset.url}
-          <Download className="size-3.5" />
-        </a>
-      )}
+    <div className="flex items-center gap-3 text-[#404040]">
+      <button type="button" aria-label={copied ? "Copied" : "Copy"} className="hover:text-[#1b1b1b]" onClick={() => void copy()}>
+        {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+      </button>
+      <button
+        type="button"
+        aria-label="Like"
+        aria-pressed={vote === "up"}
+        className={cn("hover:text-[#1b1b1b]", vote === "up" && "text-[#1b1b1b]")}
+        onClick={() => setVote((current) => (current === "up" ? null : "up"))}
+      >
+        <ThumbsUp className="size-3.5" />
+      </button>
+      <button
+        type="button"
+        aria-label="Dislike"
+        aria-pressed={vote === "down"}
+        className={cn("hover:text-[#1b1b1b]", vote === "down" && "text-[#1b1b1b]")}
+        onClick={() => setVote((current) => (current === "down" ? null : "down"))}
+      >
+        <ThumbsDown className="size-3.5" />
+      </button>
+      <span className="text-[12px]">{messageClock(createdAt)}</span>
     </div>
   );
+}
+
+function messageClock(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: false });
+}
+
+function AssetBlock({ asset }: { asset: Extract<ContentBlock, { type: "asset" }> }) {
+  return (
+    <div className="flex flex-col gap-2">
+      {asset.mimeType.startsWith("image/") ? (
+        <ChatImage
+          src={asset.url}
+          alt={asset.filename ?? "Generated image"}
+          filename={asset.filename}
+          className="h-auto w-auto max-h-[220px] max-w-[240px] rounded-xl object-contain"
+        />
+      ) : null}
+      <GeneratedAsset asset={asset} />
+    </div>
+  );
+}
+
+function GeneratedAsset({ asset }: { asset: Extract<ContentBlock, { type: "asset" }> }) {
+  return (
+    <div className="grid grid-cols-[140px_1fr] items-start gap-3 rounded-2xl border border-[#ededed] bg-white p-4">
+      <div className="pt-0.5 text-[13px] font-semibold text-[#404040]">URL</div>
+      <a
+        href={asset.url}
+        target="_blank"
+        rel="noreferrer"
+        className="flex min-w-0 items-start gap-2 break-all text-[13px] text-[#2563eb]"
+      >
+        <span className="min-w-0">{asset.url}</span>
+        <Download className="mt-0.5 size-3.5 shrink-0" />
+      </a>
+    </div>
+  );
+}
+
+type Field = {
+  label: string;
+  value: { kind: "text"; text: string } | { kind: "image"; url: string };
+};
+
+function toolFields(toolName: string, input: unknown, output: unknown): Field[] {
+  const record = flattenRecord(asRecord(input));
+  const fields: Field[] = [];
+  if (toolName === "crop_image" || toolName === "gpt_image_2" || toolName === "merge_videos") {
+    fields.push({ label: "Model", value: { kind: "text", text: toolName } });
+  }
+  const imageUrl = stringField(record, ["image_url", "image", "input_image"]);
+  if (imageUrl) fields.push({ label: "Input Image", value: { kind: "image", url: imageUrl } });
+  const prompt = stringField(record, ["prompt"]);
+  if (prompt) fields.push({ label: "Prompt", value: { kind: "text", text: prompt } });
+  pushNumber(fields, "X Position (%)", record.x_percent ?? record.x);
+  pushNumber(fields, "Y Position (%)", record.y_percent ?? record.y);
+  pushNumber(fields, "Width (%)", record.width_percent ?? record.width);
+  pushNumber(fields, "Height (%)", record.height_percent ?? record.height);
+  const videos = record.video_urls;
+  if (Array.isArray(videos)) {
+    fields.push({
+      label: "Videos",
+      value: { kind: "text", text: videos.filter((item) => typeof item === "string").join("\n") },
+    });
+  }
+  const outputUrl = stringField(flattenRecord(asRecord(output)), ["image_url", "video_url", "url"]);
+  if (outputUrl && outputUrl !== imageUrl) {
+    fields.push(
+      /\.(mp4|webm|mov)(\?|$)/i.test(outputUrl)
+        ? { label: "Output Video", value: { kind: "text", text: outputUrl } }
+        : { label: "Output Image", value: { kind: "image", url: outputUrl } },
+    );
+  }
+  if (fields.length) return fields;
+  return Object.entries(record)
+    .filter(([, value]) => value != null && typeof value !== "object")
+    .map(([key, value]) => ({
+      label: labelize(key),
+      value: { kind: "text" as const, text: String(value) },
+    }));
+}
+
+function pushNumber(fields: Field[], label: string, value: unknown) {
+  if (typeof value === "number") fields.push({ label, value: { kind: "text", text: String(value) } });
+}
+
+function stringField(record: Record<string, unknown>, keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.length > 0) return value;
+  }
+  return undefined;
+}
+
+function flattenRecord(record: Record<string, unknown> | null): Record<string, unknown> {
+  if (!record) return {};
+  const crop = asRecord(record.crop);
+  if (!crop) return record;
+  return { ...record, ...crop };
+}
+
+function labelize(key: string): string {
+  return key
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function iconFor(name: string) {
   if (name === "web_search") return Globe;
   if (name === "load_skill" || name === "read_skill_asset") return Zap;
   if (name === "sandbox_run_code") return Terminal;
-  if (name.includes("image") || name.includes("crop")) return ImageIcon;
+  if (name === "crop_image" || name === "gpt_image_2" || name === "merge_videos") return Sparkles;
   return Wrench;
+}
+
+function iconTone(name: string): string {
+  if (name === "web_search") return "text-[#2563eb]";
+  if (name === "load_skill" || name === "read_skill_asset") return "text-[#ca8a04]";
+  if (name === "crop_image" || name === "gpt_image_2" || name === "merge_videos") return "text-[#7c3aed]";
+  return "text-[#404040]";
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {

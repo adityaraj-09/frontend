@@ -2,11 +2,12 @@
 
 import { useRealtimeRunWithStreams } from "@trigger.dev/react-hooks";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { runApi } from "@/lib/api/services";
 import { queryKeys } from "@/lib/query/keys";
 import { runSnapshotSchema, type RunSnapshot } from "@/lib/api/schemas";
-import { isActiveRun } from "@/lib/format";
+import { mergeLiveTools, preferAssistant, visibleWaitpoint } from "@/hooks/use-messages";
+import { isActiveRun, preferRunStatus } from "@/lib/format";
 import { useRunSessionStore } from "@/stores/run-session";
 
 type TextChunk = { type?: string; text?: string };
@@ -25,10 +26,7 @@ export function useRunRealtime(chatId: string | undefined, seedRunId?: string) {
     queryKey: queryKeys.run(chatId ?? "", runId ?? ""),
     queryFn: () => runApi.snapshot(chatId!, runId!),
     enabled: Boolean(chatId && runId),
-    refetchInterval: (query) => {
-      const status = query.state.data?.status;
-      return isActiveRun(status) ? 2500 : false;
-    },
+    refetchInterval: (query) => (isActiveRun(query.state.data?.status) ? 2500 : false),
   });
 
   const realtime = useRealtimeRunWithStreams(triggerRunId ?? undefined, {
@@ -51,12 +49,13 @@ export function useRunRealtime(chatId: string | undefined, seedRunId?: string) {
     setStreamText(joined);
   }, [realtime.streams, setStreamText]);
 
+  const status = preferRunStatus(liveMetadata?.status, snapshotQuery.data?.status);
+
   useEffect(() => {
-    const status = liveMetadata?.status ?? snapshotQuery.data?.status;
     if (status && !isActiveRun(status) && active?.chatId === chatId) {
       setActive(null);
     }
-  }, [liveMetadata?.status, snapshotQuery.data?.status, active?.chatId, chatId, setActive]);
+  }, [status, active?.chatId, chatId, setActive]);
 
   useEffect(() => {
     const snap = snapshotQuery.data;
@@ -72,11 +71,31 @@ export function useRunRealtime(chatId: string | undefined, seedRunId?: string) {
     }
   }, [snapshotQuery.data, active?.chatId, chatId, setActive]);
 
-  const snapshot: Partial<RunSnapshot> | undefined = liveMetadata ?? snapshotQuery.data;
+  const snapshot: Partial<RunSnapshot> | undefined = useMemo(() => {
+    const rest = snapshotQuery.data;
+    if (!rest && !liveMetadata) return undefined;
+    return {
+      ...rest,
+      ...liveMetadata,
+      status: status ?? rest?.status ?? liveMetadata?.status,
+      assistant: preferAssistant(liveMetadata?.assistant, rest?.assistant),
+      tools: mergeLiveTools(liveMetadata?.tools, rest?.tools),
+      waitpoint: visibleWaitpoint(
+        liveMetadata && "waitpoint" in liveMetadata ? liveMetadata.waitpoint : (rest?.waitpoint ?? null),
+      ),
+    };
+  }, [liveMetadata, snapshotQuery.data, status]);
+
+  const heldSnapshot = useRef<Partial<RunSnapshot> | undefined>(undefined);
+  useEffect(() => {
+    heldSnapshot.current = undefined;
+  }, [chatId]);
+  if (snapshot) heldSnapshot.current = snapshot;
+  const view = snapshot ?? heldSnapshot.current;
   const realtimeFailed = Boolean(realtime.error);
 
   return {
-    snapshot,
+    snapshot: view,
     streamText,
     isLive: Boolean(triggerRunId && token && !realtimeFailed),
     isPolling: realtimeFailed || !triggerRunId,

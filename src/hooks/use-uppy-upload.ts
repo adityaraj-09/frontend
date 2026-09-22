@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useRef } from "react";
 import Uppy from "@uppy/core";
 import Transloadit from "@uppy/transloadit";
+import { useQueryClient } from "@tanstack/react-query";
 import { chatApi, uploadApi } from "@/lib/api/services";
+import { queryKeys } from "@/lib/query/keys";
 import { useComposerStore } from "@/stores/composer";
 
 /** Mirrors backend Community-plan caps. Transloadit uploads over tus (`@uppy/tus`). */
@@ -37,6 +39,7 @@ function emitter(uppy: Uppy): Emitter {
 }
 
 export function useUppyUpload(chatId?: string) {
+  const queryClient = useQueryClient();
   const uppyRef = useRef<Uppy | null>(null);
   const chatIdRef = useRef(chatId);
   const draftChatId = useComposerStore((s) => s.draftChatId);
@@ -123,7 +126,21 @@ export function useUppyUpload(chatId?: string) {
       void uploadApi
         .complete(target, assembly)
         .then((saved) => {
+          if (saved.attachments.length === 0) {
+            setError("Upload finished without a file. Try attaching it again.");
+            for (const file of uppy.getFiles()) {
+              upsertPendingFile({
+                id: file.id,
+                name: file.name ?? "file",
+                progress: 100,
+                status: "error",
+                error: "Upload finished without a file URL.",
+              });
+            }
+            return;
+          }
           addAttachmentIds(saved.attachments.map((row) => row.id));
+          void queryClient.invalidateQueries({ queryKey: queryKeys.library });
           const files = uppy.getFiles();
           files.forEach((file, index) => {
             upsertPendingFile({
@@ -153,7 +170,7 @@ export function useUppyUpload(chatId?: string) {
 
     uppyRef.current = uppy;
     return uppy;
-  }, [addAttachmentIds, setDraftChatId, setError, upsertPendingFile]);
+  }, [addAttachmentIds, queryClient, setDraftChatId, setError, upsertPendingFile]);
 
   useEffect(() => {
     ensureUppy();

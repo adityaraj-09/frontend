@@ -28,11 +28,11 @@ export default function TasksPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-[30px] font-bold leading-9 text-[#1b1b1b]">Tasks</h1>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[14px] font-medium leading-5 text-[#585858]">Filter by</span>
+            <span className="text-[14px] font-semibold leading-5 text-[#404040]">Filter by</span>
             <DropdownMenu>
-              <DropdownMenuTrigger className="inline-flex h-8 items-center gap-1 rounded-[10px] px-2 text-[14px] font-medium leading-5 text-[#1b1b1b] hover:bg-[#f1f1f1]">
+              <DropdownMenuTrigger className="inline-flex h-8 items-center gap-1 rounded-[10px] px-2 text-[14px] font-semibold leading-5 text-[#1b1b1b] hover:bg-[#f1f1f1]">
                 {pinnedOnly ? "Pinned" : "All"}
-                <ChevronDown className="size-3.5 text-[#777777]" />
+                <ChevronDown className="size-3.5 text-[#404040]" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-36">
                 <DropdownMenuItem onClick={() => setPinnedOnly(false)}>All</DropdownMenuItem>
@@ -43,7 +43,7 @@ export default function TasksPage() {
               type="button"
               aria-pressed={selecting}
               className={cn(
-                "inline-flex h-8 items-center rounded-full border border-[#ededed] bg-white px-3 text-[14px] font-medium leading-5 text-[#1b1b1b] hover:bg-[#fafafa]",
+                "inline-flex h-8 items-center rounded-full border border-[#ededed] bg-white px-3 text-[14px] font-semibold leading-5 text-[#1b1b1b] hover:bg-[#fafafa]",
                 selecting && "bg-[#f1f1f1]",
               )}
               onClick={() => {
@@ -55,7 +55,7 @@ export default function TasksPage() {
             </button>
             <Link
               href="/"
-              className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#1b1b1b] px-3 text-[14px] font-medium leading-5 text-white"
+              className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#1b1b1b] px-3 text-[14px] font-semibold leading-5 text-white"
             >
               <Plus className="size-4" strokeWidth={2} />
               New task
@@ -64,21 +64,21 @@ export default function TasksPage() {
           </div>
         </div>
 
-        <label className="mt-5 flex h-11 items-center gap-2 rounded-xl bg-[#f7f7f7] px-3 text-[#777777]">
+        <label className="mt-5 flex h-11 items-center gap-2 rounded-xl bg-[#f7f7f7] px-3 text-[#404040]">
           <Search className="size-4 shrink-0" strokeWidth={1.75} />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search tasks..."
-            className="h-full w-full bg-transparent text-[14px] leading-5 text-[#1b1b1b] outline-none placeholder:text-[#777777]"
+            className="h-full w-full bg-transparent text-[14px] font-medium leading-5 text-[#1b1b1b] outline-none placeholder:text-[#585858]"
           />
         </label>
 
         <SignedOut>
-          <p className="mt-6 text-[14px] leading-6 text-[#585858]">Sign in to see your recent tasks.</p>
+          <p className="mt-6 text-[14px] font-medium leading-6 text-[#404040]">Sign in to see your recent tasks.</p>
           <Link
             href="/sign-in"
-            className="mt-4 inline-flex h-8 items-center rounded-full bg-[#1b1b1b] px-3 text-[14px] font-medium text-white"
+            className="mt-4 inline-flex h-8 items-center rounded-full bg-[#1b1b1b] px-3 text-[14px] font-semibold text-white"
           >
             Sign in
           </Link>
@@ -109,16 +109,16 @@ export default function TasksPage() {
                         {checked ? <Check className="size-3" /> : null}
                       </button>
                     ) : null}
-                    <Link href={`/chat/${chat.id}`} className="min-w-0 flex-1 truncate text-[14px] leading-5 text-[#1b1b1b]">
+                    <Link href={`/chat/${chat.id}`} className="min-w-0 flex-1 truncate text-[14px] font-medium leading-5 text-[#1b1b1b]">
                       {chat.title || "New task"}
                     </Link>
-                    <span className="shrink-0 text-[14px] leading-5 text-[#777777]">{formatAgo(chat.lastMessageAt)}</span>
+                    <span className="shrink-0 text-[14px] font-medium leading-5 text-[#404040]">{formatAgo(chat.lastMessageAt)}</span>
                   </div>
                 </li>
               );
             })}
             {!items.length ? (
-              <li className="py-8 text-[14px] leading-6 text-[#777777]">
+              <li className="py-8 text-[14px] font-medium leading-6 text-[#404040]">
                 {pinnedOnly ? "No pinned tasks yet." : query ? "No tasks found." : "No tasks yet. Start from New task."}
               </li>
             ) : null}
@@ -126,7 +126,7 @@ export default function TasksPage() {
           {chats.hasNextPage ? (
             <button
               type="button"
-              className="mt-2 text-[14px] text-[#585858]"
+              className="mt-2 text-[14px] font-semibold text-[#404040]"
               onClick={() => void chats.fetchNextPage()}
             >
               Load more

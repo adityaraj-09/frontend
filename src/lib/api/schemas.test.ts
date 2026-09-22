@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { contentBlockSchema, sendResponseSchema } from "./schemas";
+import { attachmentListSchema, contentBlockSchema, sendResponseSchema } from "./schemas";
 
 describe("content blocks", () => {
   it("parses Magica asset and tool cards", () => {
@@ -24,5 +24,32 @@ describe("send response", () => {
       realtimeToken: "tok",
     });
     expect(parsed.runId).toBe("33333333-3333-3333-3333-333333333333");
+  });
+});
+
+describe("library attachments", () => {
+  it("parses uploaded files that have no message status field", () => {
+    const parsed = attachmentListSchema.parse({
+      items: [
+        {
+          id: "11111111-1111-1111-1111-111111111111",
+          chatId: "22222222-2222-2222-2222-222222222222",
+          origin: "UPLOAD",
+          filename: "chart.png",
+          mimeType: "image/png",
+          byteSize: 2048,
+          url: "https://cdn.example/chart.png",
+          thumbnailUrl: null,
+          width: 800,
+          height: 600,
+          durationMs: null,
+          createdAt: "2026-09-22T10:00:00.000Z",
+          expiresAt: null,
+        },
+      ],
+      nextCursor: null,
+    });
+    expect(parsed.items[0]?.filename).toBe("chart.png");
+    expect(parsed.items[0]?.url).toBe("https://cdn.example/chart.png");
   });
 });

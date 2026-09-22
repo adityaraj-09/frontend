@@ -1,15 +1,18 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
-import { ArrowUp, Mic, Paperclip, Plug, Square, X } from "lucide-react";
+import { ArrowUp, Loader2, Mic, Paperclip, Plug, Square, X } from "lucide-react";
 import { useComposerStore } from "@/stores/composer";
 import { useSendMessage } from "@/hooks/use-send-message";
 import { useUppyUpload } from "@/hooks/use-uppy-upload";
+import { useLibraryQuery } from "@/hooks/use-queries";
 import { useRunSessionStore } from "@/stores/run-session";
 import { runApi } from "@/lib/api/services";
 import { cn } from "@/lib/utils";
+import type { LibraryAttachment } from "@/lib/api/schemas";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AttachMenu } from "./attach-menu";
+import { LibraryDialog } from "@/components/library/library-dialog";
 
 export function Composer({
   chatId,
@@ -26,15 +29,25 @@ export function Composer({
   const attachmentIds = useComposerStore((s) => s.attachmentIds);
   const pendingFiles = useComposerStore((s) => s.pendingFiles);
   const removeAttachmentId = useComposerStore((s) => s.removeAttachmentId);
+  const upsertPendingFile = useComposerStore((s) => s.upsertPendingFile);
   const send = useSendMessage(chatId);
   const uppy = useUppyUpload(chatId);
+  const library = useLibraryQuery();
   const active = useRunSessionStore((s) => s.active);
+  const pending = useRunSessionStore((s) => s.pending);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [attachOpen, setAttachOpen] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const addAttachmentIds = useComposerStore((s) => s.addAttachmentIds);
 
-  const running = Boolean(chatId && active?.chatId === chatId);
-  const uploading = pendingFiles.some((file) => file.status === "uploading" || file.status === "error");
+  const running = Boolean(
+    chatId && (active?.chatId === chatId || pending?.chatId === chatId || send.isPending),
+  );
+  const uploading = pendingFiles.some(
+    (file) => file.status === "uploading" || file.status === "error" || !file.attachmentId,
+  );
   const canSend = text.trim().length > 0 && !send.isPending && !running && !uploading;
+  const libraryItems = library.data?.pages.flatMap((page) => page.items) ?? [];
   const libraryOnlyIds = attachmentIds.filter(
     (id) => !pendingFiles.some((file) => file.attachmentId === id),
   );
@@ -62,22 +75,24 @@ export function Composer({
         {pendingFiles.length || libraryOnlyIds.length ? (
           <div className="mb-2 flex flex-wrap gap-1.5">
             {pendingFiles.map((file) => (
-              <span
-                key={file.id}
-                className="flex items-center gap-1.5 rounded-full bg-white px-2 py-0.5 text-[11px] text-[#52525b] ring-1 ring-[#ededed]"
-              >
+              <span key={file.id} className="relative">
                 {file.previewUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={file.previewUrl} alt="" className="size-4 rounded-full object-cover" />
-                ) : null}
-                <span className="max-w-[140px] truncate">{file.name}</span>
+                  <img src={file.previewUrl} alt={file.name} className="size-14 rounded-xl object-cover" />
+                ) : (
+                  <span className="flex size-14 items-center justify-center rounded-xl bg-white text-[10px] font-semibold text-[#404040] ring-1 ring-[#ededed]">
+                    {file.name.split(".").pop()}
+                  </span>
+                )}
                 {file.status === "uploading" ? (
-                  <span className="tabular-nums text-[#a1a1aa]">{file.progress}%</span>
+                  <span className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/25">
+                    <Loader2 className="size-4 animate-spin text-white" />
+                  </span>
                 ) : null}
                 {file.status === "error" ? (
                   <button
                     type="button"
-                    className="text-[#b42318]"
+                    className="absolute inset-x-0 bottom-1 text-center text-[10px] text-white"
                     onClick={() => uppy.retry(file.id)}
                   >
                     Retry
@@ -86,29 +101,23 @@ export function Composer({
                 <button
                   type="button"
                   aria-label={`Remove ${file.name}`}
-                  className="text-[#a1a1aa] hover:text-[#1b1b1b]"
+                  className="absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full bg-[#e8e8e8] text-[#1b1b1b]"
                   onClick={() => uppy.cancel(file.id)}
                 >
-                  <X className="size-3" />
+                  <X className="size-2.5" />
                 </button>
               </span>
             ))}
-            {libraryOnlyIds.map((id) => (
-              <span
-                key={id}
-                className="flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[11px] text-[#52525b] ring-1 ring-[#ededed]"
-              >
-                attached
-                <button
-                  type="button"
-                  aria-label="Remove attachment"
-                  className="text-[#a1a1aa] hover:text-[#1b1b1b]"
-                  onClick={() => removeAttachmentId(id)}
-                >
-                  <X className="size-3" />
-                </button>
-              </span>
-            ))}
+            {libraryOnlyIds.map((id) => {
+              const item = libraryItems.find((row) => row.id === id);
+              return (
+                <LibraryChip
+                  key={id}
+                  item={item}
+                  onRemove={() => removeAttachmentId(id)}
+                />
+              );
+            })}
           </div>
         ) : null}
         <textarea
@@ -117,7 +126,7 @@ export function Composer({
           rows={1}
           aria-label={variant === "home" ? "Assign a task or ask anything" : "Send a message"}
           placeholder={variant === "home" ? "Assign a task or ask anything..." : "Send a message..."}
-          className="min-h-6 w-full resize-none bg-transparent text-[14px] font-normal leading-6 tracking-normal text-[#1b1b1b] outline-none placeholder:text-[#777777]"
+          className="min-h-6 w-full resize-none bg-transparent text-[14px] font-medium leading-6 tracking-normal text-[#1b1b1b] outline-none placeholder:text-[#585858]"
           onChange={(event) => {
             setText(event.target.value);
             resize();
@@ -169,7 +178,7 @@ export function Composer({
               <button
                 type="button"
                 aria-label="Stop"
-                className="flex size-8 items-center justify-center rounded-full bg-[#1b1b1b] text-white"
+                className="flex size-8 items-center justify-center rounded-[10px] bg-[#e11d48] text-white"
                 onClick={() => void onStop()}
               >
                 <Square className="size-3 fill-current" />
@@ -181,7 +190,7 @@ export function Composer({
                 disabled={!canSend}
                 className={cn(
                   "flex size-8 shrink-0 items-center justify-center rounded-full transition-all",
-                  canSend ? "bg-[#1b1b1b] text-white" : "cursor-not-allowed bg-[#fafafa] text-[#585858] opacity-50",
+                  canSend ? "bg-[#1b1b1b] text-white" : "cursor-not-allowed bg-[#fafafa] text-[#404040] opacity-50",
                 )}
                 onClick={() => send.mutate()}
               >
@@ -191,11 +200,33 @@ export function Composer({
           </div>
         </div>
         {attachOpen ? (
-          <AttachMenu onClose={() => setAttachOpen(false)} onPickFiles={uppy.addFiles} />
+          <AttachMenu
+            onClose={() => setAttachOpen(false)}
+            onPickFiles={uppy.addFiles}
+            onSelectAsset={() => {
+              setAttachOpen(false);
+              setLibraryOpen(true);
+            }}
+          />
         ) : null}
       </div>
+      <LibraryDialog
+        open={libraryOpen}
+        onOpenChange={setLibraryOpen}
+        onSelect={(item) => {
+          addAttachmentIds([item.id]);
+          upsertPendingFile({
+            id: item.id,
+            name: item.filename,
+            previewUrl: previewFor(item),
+            progress: 100,
+            status: "complete",
+            attachmentId: item.id,
+          });
+        }}
+      />
       {planMode ? (
-        <p className="mt-2 px-1 text-[12px] text-[#737373]">Plan mode — the agent will pause for approval before tools.</p>
+        <p className="mt-2 px-1 text-[12px] font-medium text-[#404040]">Plan mode — the agent will pause for approval before tools.</p>
       ) : null}
       {error ? (
         <p role="alert" className="mt-2 px-1 text-[12px] text-[#b42318]">
@@ -203,6 +234,41 @@ export function Composer({
         </p>
       ) : null}
     </div>
+  );
+}
+
+function previewFor(item: Pick<LibraryAttachment, "filename" | "mimeType" | "url" | "thumbnailUrl">) {
+  return item.thumbnailUrl || (item.mimeType.startsWith("image/") ? item.url : null) || undefined;
+}
+
+function LibraryChip({
+  item,
+  onRemove,
+}: {
+  item?: LibraryAttachment;
+  onRemove: () => void;
+}) {
+  const name = item?.filename ?? "file";
+  const src = item ? previewFor(item) : undefined;
+  return (
+    <span className="relative">
+      {src ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={src} alt={name} className="size-14 rounded-xl object-cover" />
+      ) : (
+        <span className="flex size-14 items-center justify-center rounded-xl bg-white text-[10px] font-semibold text-[#404040] ring-1 ring-[#ededed]">
+          {name.includes(".") ? name.split(".").pop() : name}
+        </span>
+      )}
+      <button
+        type="button"
+        aria-label={`Remove ${name}`}
+        className="absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full bg-[#e8e8e8] text-[#1b1b1b]"
+        onClick={onRemove}
+      >
+        <X className="size-2.5" />
+      </button>
+    </span>
   );
 }
 
@@ -221,7 +287,7 @@ function IconButton({
     <Tooltip>
       <TooltipTrigger
         className={cn(
-          "flex size-8 items-center justify-center rounded-full text-[#585858] hover:bg-[#fafafa] hover:text-[#343434]",
+          "flex size-8 items-center justify-center rounded-full text-[#404040] hover:bg-[#fafafa] hover:text-[#1b1b1b]",
           pressed && "bg-[#f1f1f1] text-[#1b1b1b]",
         )}
         aria-label={label}

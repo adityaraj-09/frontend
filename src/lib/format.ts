@@ -50,14 +50,34 @@ export function toolLabel(name: string): string {
     case "sandbox_run_code":
       return "Sandbox Execute";
     case "crop_image":
-      return "Crop Image";
+      return "Crop image";
     case "gpt_image_2":
-      return "GPT Image 2";
+      return "Generate image";
     case "merge_videos":
-      return "Merge Videos";
+      return "Merge videos";
     default:
       return name.replaceAll("_", " ");
   }
+}
+
+/** User-facing label for a live run while the model has not streamed text yet. */
+export function liveStepLabel(
+  currentStep: string | null | undefined,
+  status?: string | null,
+): string {
+  const step = currentStep?.trim() ?? "";
+  if (step === "thinking" || step.startsWith("llm:")) return "Thinking…";
+  if (step.startsWith("tools:")) return "Working…";
+  if (step === "wait:plan") return "Waiting for plan approval…";
+  if (step === "wait:credit") return "Waiting for credit approval…";
+  if (step === "wait:media") return "Waiting for media approval…";
+  if (step === "wait:options") return "Waiting for a choice…";
+  if (step === "queued") return "Starting…";
+  if (step === "stopping" || step === "cancelled") return "Stopping…";
+  if (status === "THINKING" || status === "QUEUED") return "Thinking…";
+  if (status === "WAITING") return "Waiting…";
+  if (status === "STOPPING") return "Stopping…";
+  return "Working…";
 }
 
 export function isActiveRun(status: string | null | undefined): boolean {
@@ -68,4 +88,13 @@ export function isActiveRun(status: string | null | undefined): boolean {
     status === "WAITING" ||
     status === "STOPPING"
   );
+}
+
+/** A finished database snapshot wins over Trigger metadata that is still reporting the run as active. */
+export function preferRunStatus(
+  live: string | null | undefined,
+  rest: string | null | undefined,
+): string | null | undefined {
+  if (rest && !isActiveRun(rest) && (!live || isActiveRun(live))) return rest;
+  return live ?? rest ?? null;
 }

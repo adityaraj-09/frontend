@@ -14,7 +14,7 @@ export function ArtifactPanel({
 
   return (
     <aside className="hidden h-full w-[46%] shrink-0 flex-col border-l border-[#ededed] bg-[#111] text-white md:flex">
-      <div className="flex h-10 items-center justify-between border-b border-white/10 px-3 text-[12px]">
+      <div className="flex h-10 items-center justify-between border-b border-white/10 px-3 text-[12px] font-semibold">
         <span className="truncate">{artifact.title}</span>
         <button
           type="button"

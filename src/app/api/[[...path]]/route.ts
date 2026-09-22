@@ -18,6 +18,12 @@ const HOP = new Set([
   "content-length",
 ]);
 
+/** Next.js rejects a route-handler response that carries middleware rewrite headers. Clerk adds them on the backend. */
+function forwardHeader(key: string): boolean {
+  const lower = key.toLowerCase();
+  return !HOP.has(lower) && !lower.startsWith("x-middleware-");
+}
+
 async function proxy(request: Request, context: { params: Promise<{ path?: string[] }> }) {
   const { path = [] } = await context.params;
   const base = process.env.API_URL?.replace(/\/$/, "") || "http://localhost:4000";
@@ -29,7 +35,7 @@ async function proxy(request: Request, context: { params: Promise<{ path?: strin
 
   const headers = new Headers();
   request.headers.forEach((value, key) => {
-    if (!HOP.has(key.toLowerCase())) headers.set(key, value);
+    if (forwardHeader(key)) headers.set(key, value);
   });
   const authorization = upstreamAuthorization({
     path,
@@ -51,7 +57,7 @@ async function proxy(request: Request, context: { params: Promise<{ path?: strin
   const upstream = await fetch(target, init);
   const out = new Headers();
   upstream.headers.forEach((value, key) => {
-    if (!HOP.has(key.toLowerCase())) out.set(key, value);
+    if (forwardHeader(key)) out.set(key, value);
   });
   return new NextResponse(upstream.body, { status: upstream.status, headers: out });
 }
