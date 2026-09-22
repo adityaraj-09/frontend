@@ -1,0 +1,14 @@
+export default function ProjectsPage() {
+  return (
+    <Empty title="Projects" body="Group tasks into projects. Start a task from New task — recent work lands in the sidebar." />
+  );
+}
+
+export function Empty({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="mx-auto flex h-full max-w-md flex-col items-center justify-center px-6 text-center">
+      <h1 className="text-[22px] font-semibold">{title}</h1>
+      <p className="mt-2 text-[14px] leading-6 text-[#737373]">{body}</p>
+    </div>
+  );
+}
