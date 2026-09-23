@@ -136,7 +136,7 @@ export function CreateProjectDialog({
           <button
             type="button"
             disabled={busy || !name.trim()}
-            className="inline-flex h-9 items-center rounded-full bg-foreground px-4 text-[13px] font-semibold text-white disabled:opacity-40"
+            className="inline-flex h-9 items-center rounded-full bg-foreground px-4 text-[13px] font-semibold text-background disabled:opacity-40"
             onClick={() => void submit()}
           >
             Create Project

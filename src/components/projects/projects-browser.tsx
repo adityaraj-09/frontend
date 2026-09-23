@@ -78,7 +78,7 @@ export function ProjectsBrowser() {
             </DropdownMenu>
             <button
               type="button"
-              className="inline-flex h-8 items-center gap-1.5 rounded-full bg-foreground px-3 text-[13px] font-semibold text-white"
+              className="inline-flex h-8 items-center gap-1.5 rounded-full bg-foreground px-3 text-[13px] font-semibold text-background"
               onClick={() => setCreateOpen(true)}
             >
               <Plus className="size-3.5" />
