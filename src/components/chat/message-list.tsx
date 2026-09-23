@@ -228,7 +228,10 @@ function AssistantTurn({
     snapshot?.waitpoint && snapshot.waitpoint.type !== "MEDIA" && snapshot.waitpoint.status === "WAITING"
       ? snapshot.waitpoint
       : null;
-  const failed = message.status === "FAILED" || (live && snapshot?.status === "FAILED");
+  const failed =
+    (message.status === "FAILED" || (live && snapshot?.status === "FAILED")) &&
+    uniqueAssets.length === 0 &&
+    !blocks.some((block) => block.type === "tool_result" && !block.error);
   const cancelled = message.status === "CANCELLED" || (live && snapshot?.status === "CANCELLED");
   const hasVisible = blocks.some((block) => block.type !== "tool_result") || Boolean(text) || pendingLive.length > 0;
 
