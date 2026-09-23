@@ -37,6 +37,15 @@ export function WaitpointCard({
     <div className="rounded-2xl border border-[#ededed] bg-[#fafafa] p-4">
       <p className="text-[12px] font-semibold uppercase tracking-wide text-[#404040]">{copy.kicker}</p>
       <p className="mt-1 text-[14px] font-medium text-[#1b1b1b]">{copy.body}</p>
+      {waitpoint.type === "OPTIONS" && optionLabels(waitpoint.payload).length ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {optionLabels(waitpoint.payload).map((option) => (
+            <Button key={option} size="sm" disabled={busy} onClick={() => void decide("approved")}>
+              {option}
+            </Button>
+          ))}
+        </div>
+      ) : null}
       <div className="mt-3 flex gap-2">
         <Button size="sm" disabled={busy} onClick={() => void decide("approved")}>
           {copy.approve}
@@ -54,8 +63,34 @@ export function WaitpointCard({
   );
 }
 
+function optionLabels(payload: unknown): string[] {
+  if (!payload || typeof payload !== "object") return [];
+  const options = (payload as { options?: unknown }).options;
+  if (!Array.isArray(options)) return [];
+  return options
+    .map((item) => {
+      if (typeof item === "string") return item;
+      if (item && typeof item === "object") {
+        const row = item as { label?: unknown; id?: unknown };
+        if (typeof row.label === "string") return row.label;
+        if (typeof row.id === "string") return row.id;
+      }
+      return "";
+    })
+    .filter(Boolean);
+}
+
 function copyFor(waitpoint: WaitpointOverlay) {
   switch (waitpoint.type) {
+    case "OPTIONS":
+      return {
+        kicker: "Choose",
+        body:
+          optionLabels(waitpoint.payload).join(" · ") ||
+          "Choose how to continue this task.",
+        approve: "Continue",
+        reject: "Stop",
+      };
     case "PLAN":
       return {
         kicker: "Plan",

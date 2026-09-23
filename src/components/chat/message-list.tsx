@@ -2,13 +2,13 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Check, ChevronDown, Copy, Download, Globe, Loader2, Sparkles, Terminal, ThumbsDown, ThumbsUp, Wrench, Zap } from "lucide-react";
+import { Check, ChevronDown, Copy, Globe, Loader2, Sparkles, Terminal, ThumbsDown, ThumbsUp, Wrench, Zap } from "lucide-react";
 import type { ContentBlock, Message, RunSnapshot } from "@/lib/api/schemas";
 import { parseBlocks } from "@/hooks/use-messages";
-import { formatDuration, liveStepLabel, toolLabel } from "@/lib/format";
+import { formatDuration, formatTurnUsage, liveStepLabel, toolLabel } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ChatImage, ChatImageMetaContext } from "./chat-image";
-import { MarkdownText, mergeAssistantText } from "./markdown-text";
+import { MarkdownText, mergeAssistantText, normalizeMediaUrl } from "./markdown-text";
 import { WaitpointCard } from "./waitpoint-card";
 
 export function MessageList({
@@ -212,6 +212,9 @@ function AssistantTurn({
   const assets = blocks.filter(
     (block): block is Extract<ContentBlock, { type: "asset" }> => block.type === "asset",
   );
+  const uniqueAssets = uniqueAssetBlocks(assets);
+  const shownAssetUrls = new Set(uniqueAssets.map((asset) => normalizeMediaUrl(asset.url)));
+  const prompts = generationPrompts(blocks);
   const waitpoint =
     snapshot?.waitpoint && snapshot.waitpoint.type !== "MEDIA" && snapshot.waitpoint.status === "WAITING"
       ? snapshot.waitpoint
@@ -222,7 +225,7 @@ function AssistantTurn({
 
   return (
     <ChatImageMetaContext.Provider
-      value={{ prompt: text, createdAt: message.createdAt, source: "Generated in chat" }}
+      value={{ prompt: prompts.first, createdAt: message.createdAt, source: "Generated in chat" }}
     >
     <div className="flex flex-col gap-3">
       {blocks.map((block, index) => {
@@ -236,7 +239,7 @@ function AssistantTurn({
           );
         }
         if (block.type === "text") {
-          return <MarkdownText key={`text-${index}`} text={block.text} />;
+          return <MarkdownText key={`text-${index}`} text={block.text} skipImages={shownAssetUrls} />;
         }
         if (block.type === "tool_use") {
           const liveRow = snapshot?.tools?.find((row) => row.toolCallId === block.toolCallId);
@@ -253,9 +256,6 @@ function AssistantTurn({
             />
           );
         }
-        if (block.type === "asset") {
-          return <AssetBlock key={`${block.url}-${index}`} asset={block} />;
-        }
         return null;
       })}
       {pendingLive.map((tool) => (
@@ -268,13 +268,24 @@ function AssistantTurn({
           status={tool.status}
         />
       ))}
-      {live && leftoverStream ? <MarkdownText text={leftoverStream} /> : null}
-      {live && !persisted && streamText ? <MarkdownText text={streamText} /> : null}
+      {live && leftoverStream ? <MarkdownText text={leftoverStream} skipImages={shownAssetUrls} /> : null}
+      {live && !persisted && streamText ? <MarkdownText text={streamText} skipImages={shownAssetUrls} /> : null}
       {!hasVisible && live ? (
         <LiveStatus currentStep={snapshot?.currentStep} status={snapshot?.status} />
       ) : null}
+      {uniqueAssets.map((asset) => (
+        <AssetBlock
+          key={asset.url}
+          asset={asset}
+          prompt={prompts.byUrl.get(normalizeMediaUrl(asset.url)) ?? prompts.first}
+        />
+      ))}
       {!live && (text || assets.length) ? (
-        <ReplyActions text={text} createdAt={message.createdAt} />
+        <ReplyActions
+          text={text}
+          createdAt={message.createdAt}
+          usage={message.usage ?? (snapshot?.assistantMessageId === message.id ? snapshot.usage : undefined)}
+        />
       ) : null}
       {failed ? (
         <p role="alert" className="text-[13px] text-[#b42318]">
@@ -338,7 +349,9 @@ function ToolRow({
   error?: string;
   status: string;
 }) {
-  const [open, setOpen] = useState(status === "RUNNING" || name === "web_search");
+  const [open, setOpen] = useState(
+    status === "RUNNING" || name === "web_search" || hasToolOutputImage(output),
+  );
   const Icon = iconFor(name);
   const success = status === "SUCCESS";
   const running = status === "RUNNING" || status === "PENDING";
@@ -380,17 +393,26 @@ function FieldList({ input, output, toolName }: { input: unknown; output: unknow
       {fields.map((field) => (
         <div key={field.label} className="grid grid-cols-[140px_1fr] items-start gap-3">
           <div className="pt-0.5 text-[13px] font-semibold text-[#404040]">{field.label}</div>
-          <FieldValue value={field.value} />
+          <FieldValue
+            value={field.value}
+            label={field.label}
+            prompt={stringField(flattenRecord(asRecord(input)), ["prompt"])}
+          />
         </div>
       ))}
     </div>
   );
 }
 
-function FieldValue({ value }: { value: FieldValue }) {
+function FieldValue({ value, label, prompt }: { value: FieldValue; label: string; prompt?: string }) {
   if (value.kind === "image") {
     return (
-      <ChatImage src={value.url} alt="" className="h-auto w-auto max-h-[220px] max-w-[240px] rounded-xl object-contain" />
+      <ChatImage
+        src={value.url}
+        alt={label}
+        prompt={prompt}
+        className="h-auto w-auto max-h-[220px] max-w-[240px] rounded-xl object-contain"
+      />
     );
   }
   return <div className="text-[13px] text-[#1b1b1b]">{value.text}</div>;
@@ -446,7 +468,21 @@ function WebSearchBody({ output, input }: { output: unknown; input: unknown }) {
   );
 }
 
-function ReplyActions({ text, createdAt }: { text: string; createdAt: string }) {
+function ReplyActions({
+  text,
+  createdAt,
+  usage,
+}: {
+  text: string;
+  createdAt: string;
+  usage?: {
+    promptTokens?: number;
+    completionTokens?: number;
+    credits?: string;
+    model?: string | null;
+    durationMs?: number | null;
+  } | null;
+}) {
   const [copied, setCopied] = useState(false);
   const [vote, setVote] = useState<"up" | "down" | null>(null);
 
@@ -484,6 +520,7 @@ function ReplyActions({ text, createdAt }: { text: string; createdAt: string }) 
         <ThumbsDown className="size-3.5" />
       </button>
       <span className="text-[12px]">{messageClock(createdAt)}</span>
+      {usage ? <span className="text-[12px]">{formatTurnUsage(usage)}</span> : null}
     </div>
   );
 }
@@ -494,36 +531,61 @@ function messageClock(iso: string): string {
   return date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
-function AssetBlock({ asset }: { asset: Extract<ContentBlock, { type: "asset" }> }) {
-  return (
-    <div className="flex flex-col gap-2">
-      {asset.mimeType.startsWith("image/") ? (
-        <ChatImage
-          src={asset.url}
-          alt={asset.filename ?? "Generated image"}
-          filename={asset.filename}
-          className="h-auto w-auto max-h-[220px] max-w-[240px] rounded-xl object-contain"
-        />
-      ) : null}
-      <GeneratedAsset asset={asset} />
-    </div>
-  );
+function uniqueAssetBlocks(assets: Extract<ContentBlock, { type: "asset" }>[]) {
+  const seen = new Set<string>();
+  return assets.filter((asset) => {
+    const key = normalizeMediaUrl(asset.url);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
-function GeneratedAsset({ asset }: { asset: Extract<ContentBlock, { type: "asset" }> }) {
+function generationPrompts(blocks: ContentBlock[]): { byUrl: Map<string, string>; first?: string } {
+  const inputs = new Map<string, string>();
+  for (const block of blocks) {
+    if (block.type !== "tool_use") continue;
+    const prompt = stringField(flattenRecord(asRecord(block.input)), ["prompt"]);
+    if (prompt) inputs.set(block.toolCallId, prompt);
+  }
+  const byUrl = new Map<string, string>();
+  let first: string | undefined;
+  for (const block of blocks) {
+    if (block.type !== "tool_result") continue;
+    const prompt = inputs.get(block.toolCallId);
+    const url = stringField(flattenRecord(asRecord(block.output)), ["image_url", "video_url", "url"]);
+    if (prompt && !first) first = prompt;
+    if (prompt && url) byUrl.set(normalizeMediaUrl(url), prompt);
+  }
+  if (!first) first = inputs.values().next().value;
+  return { byUrl, first };
+}
+
+function AssetBlock({
+  asset,
+  prompt,
+}: {
+  asset: Extract<ContentBlock, { type: "asset" }>;
+  prompt?: string;
+}) {
+  if (asset.mimeType.startsWith("video/")) {
+    return (
+      <video
+        src={asset.url}
+        controls
+        className="h-auto w-auto max-h-[220px] max-w-[240px] rounded-xl"
+      />
+    );
+  }
+  if (!asset.mimeType.startsWith("image/")) return null;
   return (
-    <div className="grid grid-cols-[140px_1fr] items-start gap-3 rounded-2xl border border-[#ededed] bg-white p-4">
-      <div className="pt-0.5 text-[13px] font-semibold text-[#404040]">URL</div>
-      <a
-        href={asset.url}
-        target="_blank"
-        rel="noreferrer"
-        className="flex min-w-0 items-start gap-2 break-all text-[13px] text-[#2563eb]"
-      >
-        <span className="min-w-0">{asset.url}</span>
-        <Download className="mt-0.5 size-3.5 shrink-0" />
-      </a>
-    </div>
+    <ChatImage
+      src={asset.url}
+      alt={asset.filename ?? "Generated image"}
+      filename={asset.filename}
+      prompt={prompt}
+      className="h-auto w-auto max-h-[220px] max-w-[240px] rounded-xl object-contain"
+    />
   );
 }
 
@@ -556,7 +618,7 @@ function toolFields(toolName: string, input: unknown, output: unknown): Field[] 
   const outputUrl = stringField(flattenRecord(asRecord(output)), ["image_url", "video_url", "url"]);
   if (outputUrl && outputUrl !== imageUrl) {
     fields.push(
-      /\.(mp4|webm|mov)(\?|$)/i.test(outputUrl)
+      isVideoUrl(outputUrl)
         ? { label: "Output Video", value: { kind: "text", text: outputUrl } }
         : { label: "Output Image", value: { kind: "image", url: outputUrl } },
     );
@@ -572,6 +634,15 @@ function toolFields(toolName: string, input: unknown, output: unknown): Field[] 
 
 function pushNumber(fields: Field[], label: string, value: unknown) {
   if (typeof value === "number") fields.push({ label, value: { kind: "text", text: String(value) } });
+}
+
+function isVideoUrl(url: string): boolean {
+  return /\.(mp4|webm|mov)(\?|$)/i.test(url);
+}
+
+function hasToolOutputImage(output: unknown): boolean {
+  const outputUrl = stringField(flattenRecord(asRecord(output)), ["image_url", "video_url", "url"]);
+  return Boolean(outputUrl && !isVideoUrl(outputUrl));
 }
 
 function stringField(record: Record<string, unknown>, keys: string[]): string | undefined {

@@ -35,6 +35,7 @@ export function useSendMessage(chatId?: string) {
       if (!targetId) {
         const created = await chatApi.create({
           title: trimmed.slice(0, 80),
+          projectId: projectIdFromLocation(),
         });
         targetId = created.id;
         queryClient.setQueryData(queryKeys.chat(created.id), created);
@@ -98,4 +99,12 @@ export function useSendMessage(chatId?: string) {
       setError("Could not send. Check your connection and retry.");
     },
   });
+}
+
+function projectIdFromLocation(): string | undefined {
+  if (typeof window === "undefined") return undefined;
+  const fromQuery = new URLSearchParams(window.location.search).get("projectId");
+  const fromPath = window.location.pathname.match(/^\/projects\/([0-9a-f-]{36})/i)?.[1];
+  const id = fromQuery || fromPath;
+  return id && /^[0-9a-f-]{36}$/i.test(id) ? id : undefined;
 }

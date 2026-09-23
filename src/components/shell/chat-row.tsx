@@ -22,9 +22,9 @@ export function ChatRow({
     <div
       className={cn(
         "group flex items-center gap-0.5",
-        compact ? "mb-0.5 rounded-lg" : "border-b border-[#ededed] py-2",
-        compact && active && "bg-[#ececee]",
-        compact && !active && "hover:bg-black/[0.04]",
+        compact ? "mb-0.5 rounded-lg" : "border-b border-border py-2",
+        compact && active && "bg-sidebar-accent",
+        compact && !active && "hover:bg-sidebar-accent/70",
       )}
     >
       <Link
@@ -32,13 +32,13 @@ export function ChatRow({
         className={cn(
           "min-w-0 flex-1 truncate",
           compact
-            ? cn("px-2 py-1.5 text-[14px] font-medium leading-5", active ? "text-[#1b1b1b]" : "text-[#404040]")
-            : "py-1 text-[14px] hover:text-black",
+            ? cn("px-2 py-1.5 text-[13px] font-semibold leading-5", active ? "text-foreground" : "text-muted-foreground")
+            : "py-1 text-[13px] font-semibold hover:text-foreground",
         )}
       >
         {chat.title || "New chat"}
         {!compact ? (
-          <div className="text-[12px] font-medium text-[#404040]">{new Date(chat.lastMessageAt).toLocaleString()}</div>
+          <div className="text-[12px] font-medium text-muted-foreground">{new Date(chat.lastMessageAt).toLocaleString()}</div>
         ) : null}
       </Link>
       <button
@@ -46,8 +46,8 @@ export function ChatRow({
         aria-label={pinned ? "Unpin chat" : "Pin chat"}
         aria-pressed={pinned}
         className={cn(
-          "flex size-7 shrink-0 items-center justify-center rounded-md text-[#404040] hover:bg-black/[0.06] hover:text-[#1b1b1b]",
-          pinned ? "text-[#1b1b1b] opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100",
+          "flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent hover:text-foreground",
+          pinned ? "text-foreground opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100",
           pinned && "opacity-100",
         )}
         onClick={() => toggle.mutate({ id: chat.id, isFavorite: !pinned })}

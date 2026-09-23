@@ -5,9 +5,9 @@ import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { SignedIn, SignedOut } from "@/lib/clerk";
 import { ApiError } from "@/lib/api/client";
-import { WEBHOOK_EVENTS, keysApi, webhookApi } from "@/lib/api/services";
+import { WEBHOOK_EVENTS, webhookApi } from "@/lib/api/services";
 import { queryKeys } from "@/lib/query/keys";
-import { formatAgo } from "@/lib/format";
+import { KeysPanel } from "./keys-panel";
 
 const PUBLIC_ROUTES = [
   { method: "POST", path: "/api/v1/completions", detail: "Start a turn. Send { text } or { prompt, chatId }." },
@@ -26,7 +26,7 @@ const PUBLIC_ROUTES = [
 export function ApiConsole() {
   return (
     <div className="h-full overflow-y-auto">
-      <div className="mx-auto w-full max-w-[880px] px-8 pb-16 pt-5">
+      <div className="w-full px-6 pb-16 pt-5">
         <h1 className="text-[30px] font-bold leading-9 text-[#1b1b1b]">API / MCP</h1>
         <p className="mt-2 max-w-[640px] text-[14px] font-semibold leading-6 text-[#404040]">
           Public routes accept an API key. Create one here, then call <code className="text-[#1b1b1b]">/api/v1</code> with{" "}
@@ -44,7 +44,9 @@ export function ApiConsole() {
         </SignedOut>
 
         <SignedIn>
-          <KeysSection />
+          <div className="mt-8">
+            <KeysPanel />
+          </div>
           <WebhooksSection />
         </SignedIn>
 
@@ -71,72 +73,6 @@ export function ApiConsole() {
         </section>
       </div>
     </div>
-  );
-}
-
-function KeysSection() {
-  const queryClient = useQueryClient();
-  const keys = useQuery({ queryKey: queryKeys.apiKeys, queryFn: () => keysApi.list() });
-  const [name, setName] = useState("");
-  const [revealed, setRevealed] = useState<string | null>(null);
-  const create = useMutation({
-    mutationFn: (value: string) => keysApi.create(value),
-    onSuccess: async (created) => {
-      setName("");
-      setRevealed(created.key);
-      await queryClient.invalidateQueries({ queryKey: queryKeys.apiKeys });
-    },
-  });
-  const revoke = useMutation({
-    mutationFn: (id: string) => keysApi.revoke(id),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.apiKeys });
-    },
-  });
-
-  return (
-    <section className="mt-8">
-      <h2 className="text-[16px] font-semibold leading-6 text-[#1b1b1b]">API keys</h2>
-      <form
-        className="mt-3 flex flex-wrap items-center gap-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const value = name.trim();
-          if (!value || create.isPending) return;
-          create.mutate(value);
-        }}
-      >
-        <input
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          placeholder="Key name"
-          aria-label="Key name"
-          className="h-10 min-w-[220px] flex-1 rounded-[10px] bg-[#f7f7f7] px-3 text-[14px] font-medium leading-5 text-[#1b1b1b] outline-none placeholder:text-[#585858]"
-        />
-        <button
-          type="submit"
-          disabled={!name.trim() || create.isPending}
-          className="inline-flex h-8 items-center rounded-full bg-[#1b1b1b] px-3 text-[14px] font-semibold text-white disabled:opacity-40"
-        >
-          Create key
-        </button>
-      </form>
-      <FormError error={create.error} />
-      {revealed ? <SecretBanner label="API key" value={revealed} onDismiss={() => setRevealed(null)} /> : null}
-      <ItemList
-        empty="No API keys yet."
-        loading={keys.isLoading}
-        items={(keys.data?.items ?? []).map((key) => ({
-          id: key.id,
-          title: key.name,
-          meta: `${key.prefix}… · ${key.lastUsedAt ? `used ${formatAgo(key.lastUsedAt)}` : "never used"}`,
-          action: "Revoke",
-          pending: revoke.isPending,
-          onAction: () => revoke.mutate(key.id),
-        }))}
-      />
-      <FormError error={revoke.error} />
-    </section>
   );
 }
 

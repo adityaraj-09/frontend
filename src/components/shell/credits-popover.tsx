@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 
 function CreditsBadge({ balance }: { balance: string }) {
   return (
-    <span className="inline-flex h-8 items-center gap-2 rounded-full border border-[#ededed] bg-[#fafafa] px-3 py-1 text-[14px] font-semibold leading-5 text-[#1b1b1b]">
+    <span className="inline-flex h-8 items-center gap-2 rounded-full border border-border bg-muted px-3 py-1 text-[14px] font-semibold leading-5 text-foreground">
       <Sparkle className="size-3.5 shrink-0 text-[#343434]" strokeWidth={1.75} aria-hidden />
       {formatCredits(balance)}
     </span>

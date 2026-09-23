@@ -9,6 +9,9 @@ export const queryKeys = {
   messages: (chatId: string) => ["messages", chatId] as const,
   run: (chatId: string, runId: string) => ["run", chatId, runId] as const,
   library: ["library"] as const,
+  chatFiles: (chatId: string) => ["chat-files", chatId] as const,
+  projects: (q?: string) => ["projects", { q: q ?? "" }] as const,
+  project: (id: string) => ["project", id] as const,
   apiKeys: ["api-keys"] as const,
   webhooks: ["webhook-endpoints"] as const,
 };

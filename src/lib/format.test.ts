@@ -1,11 +1,48 @@
 import { describe, expect, it } from "vitest";
-import { formatCredits, formatDuration, liveStepLabel, preferRunStatus, toolLabel } from "./format";
+import {
+  dayGroupLabel,
+  fileKindLabel,
+  fileKindTab,
+  formatBytes,
+  formatCredits,
+  formatDuration,
+  formatTurnUsage,
+  liveStepLabel,
+  preferRunStatus,
+  toolLabel,
+} from "./format";
 
 describe("formatCredits", () => {
   it("uses Magica-style compact units", () => {
     expect(formatCredits("27.61")).toBe("27.61");
     expect(formatCredits(27_610_000)).toBe("27.61M");
     expect(formatCredits(1500)).toBe("1.5K");
+  });
+});
+
+describe("formatTurnUsage", () => {
+  it("shows duration, tokens, credits, and the routed model", () => {
+    expect(
+      formatTurnUsage({
+        promptTokens: 12,
+        completionTokens: 8,
+        credits: "0",
+        model: "deepseek/deepseek-r1:free",
+        durationMs: 2400,
+      }),
+    ).toBe("2.4s · 20 tokens · 0 credits · deepseek-r1");
+  });
+});
+
+describe("task file labels", () => {
+  it("shows Magica kind, size, and day groups", () => {
+    expect(fileKindLabel("image/png", "console.png")).toBe("PNG");
+    expect(fileKindLabel("image/jpeg", "image file")).toBe("IMAGE");
+    expect(fileKindTab("image/png", "console.png")).toBe("images");
+    expect(formatBytes(174_080)).toBe("170 KB");
+    expect(dayGroupLabel("2026-09-22T10:00:00.000Z", new Date("2026-09-23T10:00:00.000Z"))).toBe(
+      "Yesterday",
+    );
   });
 });
 

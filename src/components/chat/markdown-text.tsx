@@ -30,12 +30,50 @@ const components: Components = {
   ),
 };
 
-export function MarkdownText({ text }: { text: string }) {
+export function MarkdownText({
+  text,
+  skipImages,
+}: {
+  text: string;
+  skipImages?: Set<string>;
+}) {
+  const cleaned = skipImages?.size ? stripKnownMarkdownImages(text, skipImages) : text;
+  if (!cleaned.trim()) return null;
   return (
     <div className="text-[14px] font-medium leading-6 text-[#1b1b1b]">
-      <ReactMarkdown components={components}>{text}</ReactMarkdown>
+      <ReactMarkdown
+        components={{
+          ...components,
+          img: ({ src, alt }) => {
+            if (typeof src === "string" && skipImages?.has(normalizeMediaUrl(src))) return null;
+            return (
+              <ChatImage
+                src={typeof src === "string" ? src : undefined}
+                alt={alt}
+                className="my-2 h-auto w-auto max-h-[220px] max-w-[240px] rounded-xl object-contain"
+              />
+            );
+          },
+        }}
+      >
+        {cleaned}
+      </ReactMarkdown>
     </div>
   );
+}
+
+export function normalizeMediaUrl(url: string): string {
+  return url.trim().split("?")[0] ?? url;
+}
+
+export function stripKnownMarkdownImages(text: string, urls: Set<string>): string {
+  let next = text;
+  for (const url of urls) {
+    const escaped = url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    next = next.replace(new RegExp(`!\\[[^\\]]*\\]\\(${escaped}[^)]*\\)`, "gi"), "");
+    next = next.replace(new RegExp(`(?:^|\\n)\\s*${escaped}\\s*(?=\\n|$)`, "gi"), "\n");
+  }
+  return next.replace(/\n{3,}/g, "\n\n").trim();
 }
 
 /** Persisted assistant text and the live token buffer are the same string once a turn is saved. */

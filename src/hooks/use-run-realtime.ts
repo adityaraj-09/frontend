@@ -10,28 +10,67 @@ import { mergeLiveTools, preferAssistant, visibleWaitpoint } from "@/hooks/use-m
 import { isActiveRun, preferRunStatus } from "@/lib/format";
 import { useRunSessionStore } from "@/stores/run-session";
 
-type TextChunk = { type?: string; text?: string };
+type TextChunk = { type?: string; text?: string; chunk?: unknown };
+
+export function joinAssistantStream(parts: unknown): string {
+  if (!Array.isArray(parts)) return "";
+  return parts.map(chunkText).join("");
+}
+
+export function liveStreamForTurn(input: {
+  lastAssistant?: { id: string; status: string } | null;
+  assistantMessageId?: string | null;
+  status?: string | null;
+  streamText: string;
+}): string {
+  if (!input.streamText || !input.lastAssistant) return "";
+  if (input.lastAssistant.status === "STREAMING") return input.streamText;
+  if (input.assistantMessageId === input.lastAssistant.id) return input.streamText;
+  if (isActiveRun(input.status)) return input.streamText;
+  return "";
+}
+
+function chunkText(part: unknown): string {
+  if (typeof part === "string") return part;
+  if (!part || typeof part !== "object") return "";
+  const record = part as TextChunk;
+  if (typeof record.text === "string") return record.text;
+  if (typeof record.chunk === "string") return record.chunk;
+  if (record.chunk && typeof record.chunk === "object" && typeof (record.chunk as { text?: unknown }).text === "string") {
+    return (record.chunk as { text: string }).text;
+  }
+  return "";
+}
 
 export function useRunRealtime(chatId: string | undefined, seedRunId?: string) {
   const active = useRunSessionStore((s) => s.active);
   const setActive = useRunSessionStore((s) => s.setActive);
+  const patchActive = useRunSessionStore((s) => s.patchActive);
   const setStreamText = useRunSessionStore((s) => s.setStreamText);
   const streamText = useRunSessionStore((s) => s.streamText);
 
   const runId = active && active.chatId === chatId ? active.runId : seedRunId;
-  const triggerRunId = active && active.chatId === chatId ? active.triggerRunId : null;
-  const token = active && active.chatId === chatId ? active.realtimeToken : undefined;
+  const sessionTriggerId = active && active.chatId === chatId ? active.triggerRunId : null;
+  const sessionToken = active && active.chatId === chatId ? active.realtimeToken : undefined;
 
   const snapshotQuery = useQuery({
     queryKey: queryKeys.run(chatId ?? "", runId ?? ""),
     queryFn: () => runApi.snapshot(chatId!, runId!),
     enabled: Boolean(chatId && runId),
-    refetchInterval: (query) => (isActiveRun(query.state.data?.status) ? 2500 : false),
+    refetchInterval: (query) => {
+      if (!isActiveRun(query.state.data?.status)) return false;
+      return sessionTriggerId && sessionToken ? 8000 : 2500;
+    },
   });
+
+  const triggerRunId = sessionTriggerId ?? snapshotQuery.data?.triggerRunId ?? null;
+  const token = sessionToken ?? snapshotQuery.data?.realtimeToken;
+  const liveEnabled = Boolean(triggerRunId && token);
 
   const realtime = useRealtimeRunWithStreams(triggerRunId ?? undefined, {
     accessToken: token,
-    enabled: Boolean(triggerRunId && token),
+    enabled: liveEnabled,
+    baseURL: process.env.NEXT_PUBLIC_TRIGGER_API_URL || undefined,
   });
 
   const liveMetadata = useMemo(() => {
@@ -41,11 +80,9 @@ export function useRunRealtime(chatId: string | undefined, seedRunId?: string) {
   }, [realtime.run]);
 
   useEffect(() => {
-    const parts = (realtime.streams as Record<string, TextChunk[] | undefined> | undefined)?.[
-      "assistant-text"
-    ];
-    if (!parts?.length) return;
-    const joined = parts.map((part) => (typeof part?.text === "string" ? part.text : "")).join("");
+    const parts = (realtime.streams as Record<string, unknown> | undefined)?.["assistant-text"];
+    const joined = joinAssistantStream(parts);
+    if (!joined) return;
     setStreamText(joined);
   }, [realtime.streams, setStreamText]);
 
@@ -59,17 +96,19 @@ export function useRunRealtime(chatId: string | undefined, seedRunId?: string) {
 
   useEffect(() => {
     const snap = snapshotQuery.data;
-    if (!snap || active?.chatId === chatId) return;
-    if (isActiveRun(snap.status)) {
-      setActive({
-        chatId: snap.chatId,
-        runId: snap.runId,
-        triggerRunId: snap.triggerRunId,
-        realtimeToken: snap.realtimeToken,
-        messageId: snap.messageId,
-      });
-    }
-  }, [snapshotQuery.data, active?.chatId, chatId, setActive]);
+    if (!snap || !isActiveRun(snap.status) || !chatId) return;
+    const current = useRunSessionStore.getState().active;
+    const sameRun = current?.chatId === chatId && current.runId === snap.runId;
+    if (sameRun && current.triggerRunId && current.realtimeToken) return;
+    if (!snap.triggerRunId && !snap.realtimeToken && sameRun) return;
+    patchActive({
+      chatId: snap.chatId,
+      runId: snap.runId,
+      triggerRunId: snap.triggerRunId ?? current?.triggerRunId ?? null,
+      realtimeToken: current?.realtimeToken ?? snap.realtimeToken,
+      messageId: snap.messageId,
+    });
+  }, [snapshotQuery.data, chatId, patchActive]);
 
   const snapshot: Partial<RunSnapshot> | undefined = useMemo(() => {
     const rest = snapshotQuery.data;
@@ -97,8 +136,8 @@ export function useRunRealtime(chatId: string | undefined, seedRunId?: string) {
   return {
     snapshot: view,
     streamText,
-    isLive: Boolean(triggerRunId && token && !realtimeFailed),
-    isPolling: realtimeFailed || !triggerRunId,
+    isLive: liveEnabled && !realtimeFailed,
+    isPolling: !liveEnabled || realtimeFailed,
     error: realtime.error,
     refetch: snapshotQuery.refetch,
   };

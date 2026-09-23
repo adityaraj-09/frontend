@@ -1,35 +1,31 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { SignedIn, SignedOut, useClerk, useUser } from "@/lib/clerk";
+import { usePathname } from "next/navigation";
+import { SignedIn, SignedOut, useUser } from "@/lib/clerk";
 import {
   BookOpen,
   Boxes,
   CirclePlus,
-  EllipsisVertical,
   FolderOpen,
   Library,
   LifeBuoy,
-  LogOut,
   MessageSquareMore,
   PanelLeft,
   Search,
+  Settings,
   Sparkles,
 } from "lucide-react";
 import { MagicaWordmark } from "@/components/brand/magica-mark";
 import { ChatRow } from "@/components/shell/chat-row";
+import { ThemeToggle } from "@/components/shell/theme-toggle";
+import { UpdatesDialog } from "@/components/shell/updates-dialog";
 import { useChatsQuery } from "@/hooks/use-queries";
 import { useUiStore } from "@/stores/ui";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 const NAV = [
   { href: "/", label: "New task", icon: CirclePlus },
@@ -44,14 +40,15 @@ const NAV = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
   const { user } = useUser();
-  const { signOut, openUserProfile } = useClerk();
   const searchOpen = useUiStore((s) => s.searchOpen);
   const setSearchOpen = useUiStore((s) => s.setSearchOpen);
   const searchQuery = useUiStore((s) => s.searchQuery);
   const setSearchQuery = useUiStore((s) => s.setSearchQuery);
   const setSidebarOpen = useUiStore((s) => s.setSidebarOpen);
+  const setSettingsOpen = useUiStore((s) => s.setSettingsOpen);
+  const setSettingsTab = useUiStore((s) => s.setSettingsTab);
+  const [updatesOpen, setUpdatesOpen] = useState(false);
   const chats = useChatsQuery(searchQuery);
 
   const all = chats.data?.pages.flatMap((page) => page.items) ?? [];
@@ -59,16 +56,16 @@ export function Sidebar() {
   const recent = all.filter((chat) => !chat.isFavorite).slice(0, 12);
 
   return (
-    <aside className="flex h-full w-[240px] shrink-0 flex-col border-r border-[#ededed] bg-[#fafafa] text-[14px] leading-5">
+    <aside className="flex h-full w-[240px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-[14px] leading-5 text-sidebar-foreground">
       <div className="flex h-[52px] items-center justify-between pl-3 pr-2 pt-2.5">
         <Link href="/" className="flex h-8 items-center rounded-[10px] px-0.5" aria-label="Magica home">
           <MagicaWordmark />
         </Link>
-        <div className="flex items-center text-[#404040]">
+        <div className="flex items-center text-muted-foreground">
           <button
             type="button"
             aria-label="Search tasks"
-            className="flex size-7 items-center justify-center rounded-full hover:bg-[#f1f1f1]"
+            className="flex size-7 items-center justify-center rounded-full hover:bg-sidebar-accent"
             onClick={() => setSearchOpen(!searchOpen)}
           >
             <Search className="size-4" strokeWidth={2} />
@@ -76,7 +73,7 @@ export function Sidebar() {
           <button
             type="button"
             aria-label="Collapse sidebar"
-            className="flex size-7 items-center justify-center rounded-[10px] hover:bg-[#f1f1f1]"
+            className="flex size-7 items-center justify-center rounded-[10px] hover:bg-sidebar-accent"
             onClick={() => setSidebarOpen(false)}
           >
             <PanelLeft className="size-4" strokeWidth={2} />
@@ -90,7 +87,7 @@ export function Sidebar() {
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Search tasks"
-            className="h-8 rounded-lg border-[#ededed] bg-white text-sm"
+            className="h-8 rounded-lg border-border bg-background text-sm"
           />
         </div>
       ) : null}
@@ -104,8 +101,8 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex h-[34px] items-center gap-2.5 rounded-[10px] px-2 text-[14px] font-semibold leading-5 tracking-normal text-[#404040]",
-                active ? "bg-[#f1f1f1] text-[#1b1b1b]" : "hover:bg-[#f1f1f1] hover:text-[#1b1b1b]",
+                "flex h-[34px] items-center gap-2.5 rounded-[10px] px-2 text-[14px] font-semibold leading-5 tracking-normal text-muted-foreground",
+                active ? "bg-sidebar-accent text-foreground" : "hover:bg-sidebar-accent hover:text-foreground",
               )}
             >
               <Icon className="size-4 shrink-0" strokeWidth={2} />
@@ -117,13 +114,13 @@ export function Sidebar() {
 
       <div className="mt-5 min-h-0 flex-1 overflow-y-auto px-2 pb-2">
         <SignedOut>
-          <div className="px-2 text-[11px] font-semibold leading-[16.5px] text-[#404040]">Recent tasks</div>
-          <p className="px-2 py-3 text-[12px] font-medium leading-5 text-[#404040]">Sign in to see your tasks.</p>
+          <div className="px-2 text-[11px] font-semibold leading-[16.5px] text-muted-foreground">Recent tasks</div>
+          <p className="px-2 py-3 text-[12px] font-medium leading-5 text-muted-foreground">Sign in to see your tasks.</p>
         </SignedOut>
         <SignedIn>
           {pinned.length ? (
             <>
-              <div className="px-2 text-[11px] font-semibold leading-[16.5px] text-[#404040]">Pinned</div>
+              <div className="px-2 text-[11px] font-semibold leading-[16.5px] text-muted-foreground">Pinned</div>
               <div className="mt-1">
                 {pinned.map((chat) => (
                   <ChatRow key={chat.id} chat={chat} active={pathname === `/chat/${chat.id}`} />
@@ -131,7 +128,7 @@ export function Sidebar() {
               </div>
             </>
           ) : null}
-          <div className={cn("px-2 text-[11px] font-semibold leading-[16.5px] text-[#404040]", pinned.length && "mt-4")}>
+          <div className={cn("px-2 text-[11px] font-semibold leading-[16.5px] text-muted-foreground", pinned.length && "mt-4")}>
             Recent tasks
           </div>
           <div className="mt-1">
@@ -142,37 +139,45 @@ export function Sidebar() {
         </SignedIn>
       </div>
 
-      <div className="mt-auto border-t border-[#ededed] p-2">
+      <div className="mt-auto flex flex-col gap-1.5 p-2">
+        <div className="grid grid-cols-2 gap-1.5">
+          <button
+            type="button"
+            className="flex h-9 items-center justify-center gap-1.5 rounded-full border border-border bg-background text-[13px] font-semibold text-foreground hover:bg-muted"
+            onClick={() => {
+              setSettingsTab("account");
+              setSettingsOpen(true);
+            }}
+          >
+            <Settings className="size-3.5" strokeWidth={1.75} />
+            Settings
+          </button>
+          <button
+            type="button"
+            className="flex h-9 items-center justify-center gap-1.5 rounded-full border border-border bg-background text-[13px] font-semibold text-foreground hover:bg-muted"
+            onClick={() => setUpdatesOpen(true)}
+          >
+            <Sparkles className="size-3.5" strokeWidth={1.75} />
+            Updates
+          </button>
+        </div>
+        <ThemeToggle />
         <SignedOut>
           <Link
             href="/sign-in"
-            className="flex h-[34px] w-full items-center rounded-[10px] px-2 text-[14px] font-semibold text-[#1b1b1b] hover:bg-[#f1f1f1]"
+            className="flex h-10 w-full items-center justify-center rounded-full border border-border bg-background text-[13px] font-semibold text-foreground hover:bg-muted"
           >
             Sign in
           </Link>
         </SignedOut>
         <SignedIn>
-          <DropdownMenu>
-            <DropdownMenuTrigger className="flex h-[34px] w-full items-center gap-2.5 rounded-[10px] px-2 text-[14px] font-semibold leading-5 text-[#404040] hover:bg-[#f1f1f1] hover:text-[#1b1b1b]">
-              <EllipsisVertical className="size-4" strokeWidth={2} />
-              More
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-52">
-              <DropdownMenuItem
-                onClick={() => {
-                  void signOut({ redirectUrl: "/" });
-                  router.push("/");
-                }}
-              >
-                <LogOut className="size-4" />
-                Sign out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
           <button
             type="button"
-            className="mt-1 flex h-10 w-full items-center gap-2 rounded-[16px] border border-[#ededed] bg-white px-2 text-left"
-            onClick={() => openUserProfile()}
+            className="flex h-10 w-full items-center justify-between rounded-full border border-border bg-background px-2 text-left hover:bg-muted"
+            onClick={() => {
+              setSettingsTab("account");
+              setSettingsOpen(true);
+            }}
           >
             <Avatar className="size-6">
               <AvatarImage src={user?.imageUrl} alt="" />
@@ -180,11 +185,12 @@ export function Sidebar() {
                 {user?.firstName?.[0] ?? user?.primaryEmailAddress?.emailAddress?.[0] ?? "U"}
               </AvatarFallback>
             </Avatar>
-            <span className="truncate text-[14px] font-semibold leading-5 text-[#1b1b1b]">
+            <span className="truncate pl-2 text-[13px] font-semibold leading-5 text-foreground">
               {user?.fullName ?? user?.primaryEmailAddress?.emailAddress}
             </span>
           </button>
         </SignedIn>
+        <UpdatesDialog open={updatesOpen} onOpenChange={setUpdatesOpen} />
       </div>
     </aside>
   );

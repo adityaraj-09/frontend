@@ -141,6 +141,7 @@ export function useUppyUpload(chatId?: string) {
           }
           addAttachmentIds(saved.attachments.map((row) => row.id));
           void queryClient.invalidateQueries({ queryKey: queryKeys.library });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.chatFiles(target) });
           const files = uppy.getFiles();
           files.forEach((file, index) => {
             upsertPendingFile({

@@ -4,6 +4,8 @@ import {
   apiKeyCreatedSchema,
   apiKeyListSchema,
   attachmentListSchema,
+  projectListSchema,
+  projectSchema,
   attachmentRefSchema,
   chatListSchema,
   chatSchema,
@@ -19,22 +21,24 @@ import {
   type Chat,
   type Me,
   type Message,
+  type Project,
   type RunSnapshot,
   type SendResponse,
   type SignedUpload,
 } from "./schemas";
 
 export const chatApi = {
-  list(query?: { cursor?: string; q?: string; favorite?: boolean; limit?: number }) {
+  list(query?: { cursor?: string; q?: string; favorite?: boolean; projectId?: string; limit?: number }) {
     const params = new URLSearchParams();
     if (query?.cursor) params.set("cursor", query.cursor);
     if (query?.q) params.set("q", query.q);
     if (query?.favorite) params.set("favorite", "true");
+    if (query?.projectId) params.set("projectId", query.projectId);
     if (query?.limit) params.set("limit", String(query.limit));
     const suffix = params.size ? `?${params}` : "";
     return apiJson(`/api/chats${suffix}`, chatListSchema);
   },
-  create(body?: { title?: string }) {
+  create(body?: { title?: string; projectId?: string }) {
     return apiJson("/api/chats", chatSchema, {
       method: "POST",
       body: JSON.stringify(body ?? {}),
@@ -43,7 +47,7 @@ export const chatApi = {
   get(chatId: string) {
     return apiJson(`/api/chats/${chatId}`, chatSchema);
   },
-  update(chatId: string, body: { title?: string; isFavorite?: boolean }) {
+  update(chatId: string, body: { title?: string; isFavorite?: boolean; projectId?: string | null }) {
     return apiJson(`/api/chats/${chatId}`, chatSchema, {
       method: "PATCH",
       body: JSON.stringify(body),
@@ -146,10 +150,11 @@ export const uploadApi = {
       body: JSON.stringify(assembly),
     });
   },
-  library(query?: { cursor?: string; limit?: number }) {
+  library(query?: { cursor?: string; limit?: number; chatId?: string }) {
     const params = new URLSearchParams();
     if (query?.cursor) params.set("cursor", query.cursor);
     if (query?.limit) params.set("limit", String(query.limit));
+    if (query?.chatId) params.set("chatId", query.chatId);
     const suffix = params.size ? `?${params}` : "";
     return apiJson(`/api/attachments${suffix}`, attachmentListSchema);
   },
@@ -176,6 +181,38 @@ export const keysApi = {
   },
 };
 
+export const projectApi = {
+  list(query?: { cursor?: string; q?: string; limit?: number }) {
+    const params = new URLSearchParams();
+    if (query?.cursor) params.set("cursor", query.cursor);
+    if (query?.q) params.set("q", query.q);
+    if (query?.limit) params.set("limit", String(query.limit));
+    const suffix = params.size ? `?${params}` : "";
+    return apiJson(`/api/projects${suffix}`, projectListSchema);
+  },
+  get(projectId: string) {
+    return apiJson(`/api/projects/${projectId}`, projectSchema);
+  },
+  create(body: { name: string; icon?: string; memoryEnabled?: boolean }) {
+    return apiJson("/api/projects", projectSchema, {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+  },
+  update(
+    projectId: string,
+    body: { name?: string; icon?: string; memoryEnabled?: boolean; instructions?: string },
+  ) {
+    return apiJson(`/api/projects/${projectId}`, projectSchema, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    });
+  },
+  remove(projectId: string) {
+    return apiJson(`/api/projects/${projectId}`, z.null(), { method: "DELETE" });
+  },
+};
+
 export const WEBHOOK_EVENTS = [
   "agent.started",
   "agent.completed",
@@ -198,4 +235,4 @@ export const webhookApi = {
   },
 };
 
-export type { Chat, Me, Message, RunSnapshot, SendResponse, SignedUpload };
+export type { Chat, Me, Message, Project, RunSnapshot, SendResponse, SignedUpload };

@@ -154,6 +154,7 @@ export function applyLiveAssistant(
       contentBlocks: live.contentBlocks.length ? live.contentBlocks : message.contentBlocks,
       errorCode: snapshot.errorCode ?? message.errorCode,
       errorMessage: snapshot.errorMessage ?? message.errorMessage,
+      usage: snapshot.usage ?? message.usage,
     };
   });
   if (found) return next;
@@ -173,6 +174,7 @@ export function applyLiveAssistant(
       createdAt,
       errorCode: snapshot.errorCode ?? null,
       errorMessage: snapshot.errorMessage ?? null,
+      usage: snapshot.usage,
       attachments: [],
     },
   ];

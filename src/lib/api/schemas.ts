@@ -42,11 +42,30 @@ export const chatSchema = z.object({
   id: z.string().uuid(),
   title: z.string(),
   isFavorite: z.boolean(),
+  projectId: z.string().uuid().nullable().optional(),
   lastMessageAt: z.string(),
   lastMessageId: z.string().uuid().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
+
+export const projectSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  icon: z.string().optional(),
+  memoryEnabled: z.boolean().optional(),
+  instructions: z.string().optional(),
+  taskCount: z.number(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export const projectListSchema = z.object({
+  items: z.array(projectSchema),
+  nextCursor: z.string().nullable(),
+});
+
+export type Project = z.infer<typeof projectSchema>;
 
 export const chatListSchema = z.object({
   items: z.array(chatSchema),
@@ -100,6 +119,14 @@ export const attachmentSchema = z.object({
   expiresAt: z.string().nullable().optional(),
 });
 
+export const messageUsageSchema = z.object({
+  promptTokens: z.number(),
+  completionTokens: z.number(),
+  credits: z.string(),
+  model: z.string().nullable().optional(),
+  durationMs: z.number().nullable().optional(),
+});
+
 export const messageSchema = z.object({
   id: z.string().uuid(),
   chatId: z.string().uuid(),
@@ -109,6 +136,7 @@ export const messageSchema = z.object({
   createdAt: z.string(),
   errorCode: z.string().nullable(),
   errorMessage: z.string().nullable(),
+  usage: messageUsageSchema.optional().nullable(),
   attachments: z.array(attachmentSchema),
 });
 
@@ -192,6 +220,7 @@ export const runSnapshotSchema = z.object({
   waitpoint: waitpointOverlaySchema.nullable(),
   errorCode: z.string().nullable(),
   errorMessage: z.string().nullable(),
+  usage: messageUsageSchema.optional(),
   triggerRunId: z.string().nullable(),
   assistant: z
     .object({

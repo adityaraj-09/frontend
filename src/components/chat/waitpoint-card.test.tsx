@@ -46,4 +46,27 @@ describe("WaitpointCard", () => {
       "rejected",
     );
   });
+
+  it("lists OPTIONS choices from the waitpoint payload", async () => {
+    render(
+      wrap(
+        <WaitpointCard
+          chatId="11111111-1111-1111-1111-111111111111"
+          waitpoint={{
+            ...waitpoint,
+            type: "OPTIONS",
+            payload: { options: ["Crop first", "Generate a new image"] },
+          }}
+        />,
+      ),
+    );
+    expect(screen.getByRole("button", { name: "Crop first" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Generate a new image" }));
+    const { waitpointApi } = await import("@/lib/api/services");
+    expect(waitpointApi.complete).toHaveBeenCalledWith(
+      "11111111-1111-1111-1111-111111111111",
+      waitpoint.waitpointId,
+      "approved",
+    );
+  });
 });

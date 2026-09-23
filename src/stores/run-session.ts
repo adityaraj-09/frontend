@@ -21,6 +21,7 @@ type RunSessionState = {
   pending: PendingTurn | null;
   streamText: string;
   setActive: (active: ActiveRun | null) => void;
+  patchActive: (active: ActiveRun) => void;
   setPending: (pending: PendingTurn | null) => void;
   appendStream: (chunk: string) => void;
   setStreamText: (text: string) => void;
@@ -32,6 +33,14 @@ export const useRunSessionStore = create<RunSessionState>((set) => ({
   pending: null,
   streamText: "",
   setActive: (active) => set({ active, streamText: "" }),
+  patchActive: (active) =>
+    set((state) => {
+      const sameRun = state.active?.chatId === active.chatId && state.active.runId === active.runId;
+      return {
+        active: state.active && sameRun ? { ...state.active, ...active } : active,
+        streamText: sameRun ? state.streamText : "",
+      };
+    }),
   setPending: (pending) => set({ pending }),
   appendStream: (chunk) => set((s) => ({ streamText: s.streamText + chunk })),
   setStreamText: (streamText) => set({ streamText }),

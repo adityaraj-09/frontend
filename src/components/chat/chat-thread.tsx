@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Composer } from "@/components/composer/composer";
 import { MessageList } from "./message-list";
 import { applyLiveAssistant, applyPendingTurn, chronologicalMessages, useMessagesQuery } from "@/hooks/use-messages";
-import { useRunRealtime } from "@/hooks/use-run-realtime";
+import { liveStreamForTurn, useRunRealtime } from "@/hooks/use-run-realtime";
 import { chatApi, runApi } from "@/lib/api/services";
 import { queryKeys } from "@/lib/query/keys";
 import { isActiveRun } from "@/lib/format";
@@ -58,6 +58,7 @@ export function ChatThread({ chatId }: { chatId: string }) {
   useEffect(() => {
     if (!realtime.snapshot?.status || isActiveRun(realtime.snapshot.status)) return;
     void queryClient.invalidateQueries({ queryKey: queryKeys.messages(chatId) });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.chatFiles(chatId) });
   }, [realtime.snapshot?.status, chatId, queryClient]);
 
   useEffect(() => {
@@ -71,11 +72,12 @@ export function ChatThread({ chatId }: { chatId: string }) {
       <MessageList
         messages={messages}
         snapshot={snapshot}
-        streamText={
-          lastAssistant && snapshot?.assistantMessageId === lastAssistant.id
-            ? realtime.streamText
-            : ""
-        }
+        streamText={liveStreamForTurn({
+          lastAssistant,
+          assistantMessageId: snapshot?.assistantMessageId,
+          status: snapshot?.status,
+          streamText: realtime.streamText,
+        })}
         hasEarlier={messagesQuery.hasNextPage}
         isFetchingEarlier={messagesQuery.isFetchingNextPage}
         onLoadEarlier={() => messagesQuery.fetchNextPage()}

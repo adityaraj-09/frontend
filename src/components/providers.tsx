@@ -3,6 +3,7 @@
 import { ClerkProvider } from "@/lib/clerk";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ThemeSync } from "@/components/theme-sync";
 import { useState, type ReactNode } from "react";
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -22,6 +23,7 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <ClerkProvider>
       <QueryClientProvider client={client}>
+        <ThemeSync />
         <TooltipProvider delay={200}>{children}</TooltipProvider>
       </QueryClientProvider>
     </ClerkProvider>

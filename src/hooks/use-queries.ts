@@ -2,7 +2,7 @@
 
 import { useUser } from "@/lib/clerk";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { chatApi, meApi, uploadApi } from "@/lib/api/services";
+import { chatApi, meApi, projectApi, uploadApi } from "@/lib/api/services";
 import { queryKeys } from "@/lib/query/keys";
 import type { Chat } from "@/lib/api/schemas";
 
@@ -15,15 +15,16 @@ export function useMeQuery() {
   });
 }
 
-export function useChatsQuery(search?: string, favorite?: boolean) {
+export function useChatsQuery(search?: string, favorite?: boolean, projectId?: string) {
   const { isSignedIn } = useUser();
   return useInfiniteQuery({
-    queryKey: queryKeys.chats(search, favorite),
+    queryKey: [...queryKeys.chats(search, favorite), projectId ?? ""],
     queryFn: ({ pageParam }) =>
       chatApi.list({
         cursor: pageParam,
         q: search || undefined,
         favorite: favorite || undefined,
+        projectId: projectId || undefined,
         limit: 30,
       }),
     initialPageParam: undefined as string | undefined,
@@ -64,6 +65,36 @@ export function useToggleFavorite() {
   });
 }
 
+export function useDeleteChats() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      await Promise.all(ids.map((id) => chatApi.remove(id)));
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ["chats"] });
+    },
+  });
+}
+
+export function useProjectsQuery(search?: string) {
+  const { isSignedIn } = useUser();
+  return useQuery({
+    queryKey: queryKeys.projects(search),
+    queryFn: () => projectApi.list({ q: search || undefined, limit: 50 }),
+    enabled: Boolean(isSignedIn),
+  });
+}
+
+export function useProjectQuery(projectId?: string) {
+  const { isSignedIn } = useUser();
+  return useQuery({
+    queryKey: queryKeys.project(projectId ?? ""),
+    queryFn: () => projectApi.get(projectId!),
+    enabled: Boolean(isSignedIn && projectId),
+  });
+}
+
 export function useLibraryQuery() {
   const { isSignedIn } = useUser();
   return useInfiniteQuery({
@@ -72,5 +103,16 @@ export function useLibraryQuery() {
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
     enabled: Boolean(isSignedIn),
+  });
+}
+
+export function useChatFilesQuery(chatId?: string, enabled = true) {
+  const { isSignedIn } = useUser();
+  return useInfiniteQuery({
+    queryKey: queryKeys.chatFiles(chatId ?? ""),
+    queryFn: ({ pageParam }) => uploadApi.library({ cursor: pageParam, limit: 50, chatId }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: Boolean(isSignedIn && chatId && enabled),
   });
 }

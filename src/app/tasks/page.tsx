@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Check, ChevronDown, Plus, Search } from "lucide-react";
+import { Check, ChevronDown, Plus, Search, Trash2 } from "lucide-react";
 import { SignedIn, SignedOut } from "@/lib/clerk";
-import { useChatsQuery } from "@/hooks/use-queries";
+import { useChatsQuery, useDeleteChats } from "@/hooks/use-queries";
 import { formatAgo } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
@@ -20,6 +20,7 @@ export default function TasksPage() {
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const chats = useChatsQuery(query, pinnedOnly);
+  const remove = useDeleteChats();
   const items = chats.data?.pages.flatMap((page) => page.items) ?? [];
 
   return (
@@ -53,6 +54,22 @@ export default function TasksPage() {
             >
               {selecting ? "Cancel" : "Select tasks"}
             </button>
+            {selecting ? (
+              <button
+                type="button"
+                disabled={!selected.length || remove.isPending}
+                className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[#ededed] bg-white px-3 text-[14px] font-semibold text-[#e11d48] disabled:opacity-40"
+                onClick={() => {
+                  void remove.mutateAsync(selected).then(() => {
+                    setSelected([]);
+                    setSelecting(false);
+                  });
+                }}
+              >
+                <Trash2 className="size-3.5" />
+                Delete {selected.length || ""}
+              </button>
+            ) : null}
             <Link
               href="/"
               className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#1b1b1b] px-3 text-[14px] font-semibold leading-5 text-white"
@@ -109,7 +126,7 @@ export default function TasksPage() {
                         {checked ? <Check className="size-3" /> : null}
                       </button>
                     ) : null}
-                    <Link href={`/chat/${chat.id}`} className="min-w-0 flex-1 truncate text-[14px] font-medium leading-5 text-[#1b1b1b]">
+                    <Link href={`/chat/${chat.id}`} className="min-w-0 flex-1 truncate text-[13px] font-semibold leading-5 text-[#1b1b1b]">
                       {chat.title || "New task"}
                     </Link>
                     <span className="shrink-0 text-[14px] font-medium leading-5 text-[#404040]">{formatAgo(chat.lastMessageAt)}</span>

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { ArtifactPanel } from "@/components/chat/artifact-panel";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useUiStore } from "@/stores/ui";
+import { SettingsDialog } from "@/components/settings/settings-dialog";
 import { Sidebar } from "./sidebar";
 import { TopBar } from "./top-bar";
 
@@ -27,7 +28,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (isAuth) return children;
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-white text-[#1b1b1b]">
+    <div className="flex h-dvh overflow-hidden bg-background text-foreground">
       {mobile ? (
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
           <SheetContent side="left" className="w-[240px] p-0 [&>button]:hidden">
@@ -44,6 +45,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           {artifact ? <ArtifactPanel artifact={artifact} /> : null}
         </div>
       </div>
+      <SettingsDialog />
     </div>
   );
 }

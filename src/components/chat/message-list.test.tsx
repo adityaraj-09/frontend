@@ -1,4 +1,5 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeAll, describe, expect, it } from "vitest";
 import { applyLiveAssistant } from "@/hooks/use-messages";
 import { MessageList } from "./message-list";
@@ -68,6 +69,23 @@ describe("MessageList", () => {
     expect(screen.getByText("Analyze the image").tagName).toBe("STRONG");
   });
 
+  it("shows turn cost and token usage on a finished reply", () => {
+    const message = msg("aaaaaaaa-1111-1111-1111-111111111111", "ASSISTANT", "Done");
+    message.usage = {
+      promptTokens: 12,
+      completionTokens: 8,
+      credits: "0",
+      model: "deepseek/deepseek-r1:free",
+      durationMs: 2400,
+    };
+    render(
+      <div style={{ height: 640 }}>
+        <MessageList messages={[message]} streamText="" />
+      </div>,
+    );
+    expect(screen.getByText("2.4s · 20 tokens · 0 credits · deepseek-r1")).toBeInTheDocument();
+  });
+
   it("shows the uploaded image inside the user bubble", () => {
     const message = msg("bbbbbbbb-1111-1111-1111-111111111111", "USER", "crop the right part of the image");
     message.attachments = [
@@ -87,6 +105,48 @@ describe("MessageList", () => {
     const image = screen.getByRole("img", { name: "shot.png" });
     expect(image).toHaveAttribute("src", "https://cdn.example/shot.png");
     expect(screen.getByText("crop the right part of the image")).toBeInTheDocument();
+  });
+
+  it("shows a generated image only once when the reply embeds the same URL", async () => {
+    const url = "https://cdn.example/out.png";
+    const message = msg("aaaaaaaa-1111-1111-1111-111111111111", "ASSISTANT", "");
+    message.contentBlocks = [
+      {
+        type: "tool_use",
+        toolCallId: "call_1",
+        toolName: "gpt_image_2",
+        input: { prompt: "a mountain" },
+      },
+      {
+        type: "tool_result",
+        toolCallId: "call_1",
+        toolName: "gpt_image_2",
+        output: { image_url: url },
+      },
+      { type: "asset", url, mimeType: "image/png", filename: "out.png" },
+      {
+        type: "text",
+        text: `Here's a mountain landscape:\n\n![](${url})\n\nSnowy peaks and a lake.`,
+      },
+    ];
+    render(
+      <div style={{ height: 640 }}>
+        <MessageList messages={[message]} streamText="" />
+      </div>,
+    );
+    expect(screen.getByText("Output Image")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Output Image" })).toHaveAttribute("src", url);
+    const image = screen.getByRole("img", { name: "out.png" });
+    const caption = screen.getByText("Here's a mountain landscape:");
+    expect(image.compareDocumentPosition(caption) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+    expect(screen.getByText("Snowy peaks and a lake.")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Preview out.png" }));
+    const dialog = screen.getByRole("dialog", { name: "Image Preview" });
+    expect(within(dialog).getByText("a mountain")).toBeInTheDocument();
+    expect(within(dialog).queryByText("Here's a mountain landscape:")).not.toBeInTheDocument();
+    expect(within(dialog).getByRole("img", { name: "out.png" })).toHaveClass("max-w-full");
+    expect(within(dialog).getByRole("img", { name: "out.png" })).not.toHaveClass("max-w-[280px]");
   });
 
   it("shows generated image and URL from live snapshot blocks without a refresh", () => {
@@ -115,7 +175,7 @@ describe("MessageList", () => {
     );
     expect(screen.getByText("Here is the crop.")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "out.png" })).toHaveAttribute("src", "https://cdn.example/out.png");
-    expect(screen.getByText("https://cdn.example/out.png")).toBeInTheDocument();
+    expect(screen.queryByText("https://cdn.example/out.png")).not.toBeInTheDocument();
     expect(screen.queryByText("Keep media")).not.toBeInTheDocument();
   });
 

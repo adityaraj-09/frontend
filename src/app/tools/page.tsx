@@ -1,10 +1,11 @@
-import { Empty } from "../projects/page";
+"use client";
+
+import { ToolsBrowser } from "@/components/tools/tools-browser";
 
 export default function ToolsPage() {
   return (
-    <Empty
-      title="Tools"
-      body="The agent uses Crop Image, GPT Image 2, and Merge Videos through Magica, plus sandbox and web search, from a normal conversation. There is no manual model picker."
-    />
+    <div className="h-full min-h-0">
+      <ToolsBrowser />
+    </div>
   );
 }

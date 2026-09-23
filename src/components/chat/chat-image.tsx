@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { Calendar, Copy, Download, FileText, Hash, Heart, ImagePlus, Maximize2, Pencil, Proportions, Trash2, X } from "lucide-react";
 import { uploadApi } from "@/lib/api/services";
 import { useComposerStore } from "@/stores/composer";
+import { useUiStore } from "@/stores/ui";
 import { cn } from "@/lib/utils";
 
 export type ChatImageMeta = {
@@ -21,25 +22,37 @@ export function ChatImage({
   alt,
   filename,
   attachmentId,
+  prompt,
   className,
 }: {
   src?: string;
   alt?: string;
   filename?: string;
   attachmentId?: string;
+  prompt?: string;
   className?: string;
 }) {
   const meta = useContext(ChatImageMetaContext);
+  const setArtifact = useUiStore((s) => s.setArtifact);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   if (!src) return null;
   const generated = (meta.source ?? "Generated in chat") === "Generated in chat";
   const name = displayFileName(filename || alt, src, generated);
+  const resolvedPrompt = displayPrompt(prompt ?? meta.prompt, generated);
 
   return (
     <>
-      <span className="group relative inline-block max-w-full align-top">
-        <button type="button" className="block" onClick={() => setOpen(true)} aria-label={`Preview ${name}`}>
+      <span className="group relative inline-block w-fit max-w-full self-start align-top">
+        <button
+          type="button"
+          className="block"
+          onClick={() => {
+            if (generated) setArtifact({ title: name, url: src, mimeType: "image/*" });
+            setOpen(true);
+          }}
+          aria-label={`Preview ${name}`}
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={src} alt={alt || name} className={cn("block", className)} />
         </button>
@@ -57,7 +70,7 @@ export function ChatImage({
             <ImagePreviewDialog
               src={src}
               name={name}
-              prompt={displayPrompt(meta.prompt, generated)}
+              prompt={resolvedPrompt}
               createdAt={meta.createdAt}
               source={meta.source ?? "Generated in chat"}
               onClose={() => setOpen(false)}
@@ -155,12 +168,12 @@ function ImagePreviewDialog({
               <X className="size-3.5" />
             </button>
           </div>
-          <div className="flex min-h-0 flex-1 items-center justify-center px-8">
+          <div className="mt-6 flex min-h-0 flex-1 items-center justify-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={src}
               alt={name}
-              className="max-h-full max-w-[280px] rounded-2xl object-contain"
+              className="max-h-full max-w-full rounded-2xl object-contain"
               onLoad={(event) => {
                 const image = event.currentTarget;
                 if (image.naturalWidth) setSize(`${image.naturalWidth} X ${image.naturalHeight}`);
