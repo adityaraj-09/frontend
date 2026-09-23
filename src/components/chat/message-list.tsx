@@ -408,7 +408,7 @@ function FieldList({ input, output, toolName }: { input: unknown; output: unknow
   );
 }
 
-function FieldValue({ value, label, prompt }: { value: FieldValue; label: string; prompt?: string }) {
+function FieldValue({ value, label, prompt }: { value: Field["value"]; label: string; prompt?: string }) {
   if (value.kind === "image") {
     return (
       <ChatImage

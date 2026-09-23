@@ -1,3 +1,5 @@
+import { runLiveStatusSchema, type RunSnapshot } from "@/lib/api/schemas";
+
 export function formatTurnUsage(usage: {
   promptTokens?: number;
   completionTokens?: number;
@@ -164,7 +166,8 @@ export function isActiveRun(status: string | null | undefined): boolean {
 export function preferRunStatus(
   live: string | null | undefined,
   rest: string | null | undefined,
-): string | null | undefined {
-  if (rest && !isActiveRun(rest) && (!live || isActiveRun(live))) return rest;
-  return live ?? rest ?? null;
+): RunSnapshot["status"] | null {
+  const picked = rest && !isActiveRun(rest) && (!live || isActiveRun(live)) ? rest : (live ?? rest ?? null);
+  const parsed = runLiveStatusSchema.safeParse(picked);
+  return parsed.success ? parsed.data : null;
 }

@@ -37,7 +37,7 @@ export function TopBar() {
           <button
             type="button"
             aria-label="Open sidebar"
-            className="mr-1 flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
+            className="mr-1 flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted md:hidden"
             onClick={() => setSidebarOpen(true)}
           >
             <PanelLeft className="size-3.5" />

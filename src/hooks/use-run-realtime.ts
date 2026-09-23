@@ -116,7 +116,7 @@ export function useRunRealtime(chatId: string | undefined, seedRunId?: string) {
     return {
       ...rest,
       ...liveMetadata,
-      status: status ?? rest?.status ?? liveMetadata?.status,
+      status: status ?? rest?.status ?? liveMetadata?.status ?? undefined,
       assistant: preferAssistant(liveMetadata?.assistant, rest?.assistant),
       tools: mergeLiveTools(liveMetadata?.tools, rest?.tools),
       waitpoint: visibleWaitpoint(

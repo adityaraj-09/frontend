@@ -17,7 +17,7 @@ import {
   Settings,
   Sparkles,
 } from "lucide-react";
-import { MagicaWordmark } from "@/components/brand/magica-mark";
+import { MagicaMark, MagicaWordmark } from "@/components/brand/magica-mark";
 import { ChatRow } from "@/components/shell/chat-row";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { UpdatesDialog } from "@/components/shell/updates-dialog";
@@ -38,7 +38,7 @@ const NAV = [
   { href: "/advantage", label: "Unfair Advantage", icon: Sparkles },
 ] as const;
 
-export function Sidebar() {
+export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
   const pathname = usePathname();
   const { user } = useUser();
   const searchOpen = useUiStore((s) => s.searchOpen);
@@ -54,6 +54,65 @@ export function Sidebar() {
   const all = chats.data?.pages.flatMap((page) => page.items) ?? [];
   const pinned = all.filter((chat) => chat.isFavorite).slice(0, 12);
   const recent = all.filter((chat) => !chat.isFavorite).slice(0, 12);
+
+  if (collapsed) {
+    return (
+      <aside className="flex h-full w-14 shrink-0 flex-col items-center border-r border-sidebar-border bg-sidebar py-2.5 text-sidebar-foreground">
+        <button
+          type="button"
+          aria-label="Expand sidebar"
+          className="flex size-8 items-center justify-center rounded-full text-foreground hover:bg-sidebar-accent"
+          onClick={() => setSidebarOpen(true)}
+        >
+          <span className="flex size-5 items-center justify-center rounded-[5px] bg-foreground text-background">
+            <MagicaMark />
+          </span>
+        </button>
+        <button
+          type="button"
+          aria-label="Search tasks"
+          className="mt-1 flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
+          onClick={() => {
+            setSidebarOpen(true);
+            setSearchOpen(true);
+          }}
+        >
+          <Search className="size-4" strokeWidth={2} />
+        </button>
+        <nav className="mt-1 flex flex-col items-center gap-0.5">
+          {NAV.map((item) => {
+            const Icon = item.icon;
+            const active = item.href !== "/" && (pathname === item.href || pathname.startsWith(`${item.href}/`));
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-label={item.label}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex size-8 items-center justify-center rounded-full text-muted-foreground",
+                  active ? "bg-sidebar-accent text-foreground" : "hover:bg-sidebar-accent hover:text-foreground",
+                )}
+              >
+                <Icon className="size-4" strokeWidth={2} />
+              </Link>
+            );
+          })}
+        </nav>
+        <button
+          type="button"
+          aria-label="Settings"
+          className="mt-auto flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
+          onClick={() => {
+            setSettingsTab("account");
+            setSettingsOpen(true);
+          }}
+        >
+          <Settings className="size-4" strokeWidth={2} />
+        </button>
+      </aside>
+    );
+  }
 
   return (
     <aside className="flex h-full w-[240px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-[14px] leading-5 text-sidebar-foreground">

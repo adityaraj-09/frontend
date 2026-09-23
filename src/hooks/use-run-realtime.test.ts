@@ -4,7 +4,7 @@ import { createElement, type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useRunSessionStore } from "@/stores/run-session";
 
-const subscribe = vi.fn(() => ({
+const subscribe = vi.fn((..._args: unknown[]) => ({
   run: undefined,
   streams: {},
   error: undefined,

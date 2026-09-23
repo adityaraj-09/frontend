@@ -28,14 +28,17 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-dvh overflow-hidden bg-background text-foreground">
       {mobile ? (
-        <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-          <SheetContent side="left" className="w-[240px] p-0 [&>button]:hidden">
-            <Sidebar />
-          </SheetContent>
-        </Sheet>
-      ) : sidebarOpen ? (
-        <Sidebar />
-      ) : null}
+        <>
+          {!sidebarOpen ? <Sidebar collapsed /> : null}
+          <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+            <SheetContent side="left" className="w-[240px] p-0 [&>button]:hidden">
+              <Sidebar />
+            </SheetContent>
+          </Sheet>
+        </>
+      ) : (
+        <Sidebar collapsed={!sidebarOpen} />
+      )}
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar />
         <main className="relative min-h-0 min-w-0 flex-1 overflow-hidden">{children}</main>
