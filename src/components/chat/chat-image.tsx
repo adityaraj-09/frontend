@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Calendar, Copy, Download, FileText, Hash, Heart, ImagePlus, Maximize2, Pencil, Proportions, Trash2, X } from "lucide-react";
+import { Calendar, Copy, Download, FileText, Hash, Heart, ImagePlus, Link2, Maximize2, Pencil, Proportions, Trash2, X } from "lucide-react";
 import { uploadApi } from "@/lib/api/services";
 import { useComposerStore } from "@/stores/composer";
 import { useLibraryFavorites } from "@/stores/library";
@@ -107,7 +107,7 @@ function HoverButton({
   );
 }
 
-function ImagePreviewDialog({
+export function ImagePreviewDialog({
   src,
   name,
   prompt,
@@ -188,16 +188,48 @@ function ImagePreviewDialog({
             </div>
           </div>
           <div className="mt-4 flex min-h-0 flex-1 items-center justify-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={src}
-              alt={name}
-              className="max-h-full max-w-full rounded-2xl object-contain"
-              onLoad={(event) => {
-                const image = event.currentTarget;
-                if (image.naturalWidth) setSize(`${image.naturalWidth} X ${image.naturalHeight}`);
-              }}
-            />
+            <div className="relative max-h-full max-w-full">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={src}
+                alt={name}
+                className="max-h-full max-w-full rounded-2xl object-contain"
+                onLoad={(event) => {
+                  const image = event.currentTarget;
+                  if (image.naturalWidth) setSize(`${image.naturalWidth} X ${image.naturalHeight}`);
+                }}
+              />
+              <div className="absolute top-3 right-3 flex items-center gap-2">
+                <button
+                  type="button"
+                  aria-label={copied === "link" ? "Copied link" : "Copy link"}
+                  className="flex size-9 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm hover:bg-muted"
+                  onClick={() => void copy(src, "link")}
+                >
+                  <Link2 className="size-4" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Download image"
+                  className="flex size-9 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm hover:bg-muted"
+                  onClick={() => void downloadImage(src, name)}
+                >
+                  <Download className="size-4" />
+                </button>
+                <button
+                  type="button"
+                  aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
+                  aria-pressed={favorited}
+                  className="flex size-9 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm hover:bg-muted"
+                  onClick={() => {
+                    if (attachmentId) toggleFavorite(attachmentId);
+                    else setLocalFavorite((value) => !value);
+                  }}
+                >
+                  <Heart className={cn("size-4", favorited && "fill-foreground")} />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
         <div className="flex w-[320px] shrink-0 flex-col px-6 pt-8 pb-6">
@@ -335,7 +367,7 @@ async function useInChat(
   }
 }
 
-async function downloadImage(url: string, name: string) {
+export async function downloadImage(url: string, name: string) {
   try {
     const response = await fetch(url);
     const blob = await response.blob();

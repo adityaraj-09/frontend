@@ -1,21 +1,28 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowUpDown,
+  Download,
   Folder,
   Heart,
   Image as ImageIcon,
   LayoutGrid,
+  Link2,
   List,
+  Loader2,
   Search,
   SlidersHorizontal,
   Sparkles,
   Upload,
+  X,
 } from "lucide-react";
 import { useLibraryQuery } from "@/hooks/use-queries";
 import { useUppyUpload } from "@/hooks/use-uppy-upload";
 import { useLibraryFavorites } from "@/stores/library";
+import { useComposerStore } from "@/stores/composer";
+import { downloadImage, ImagePreviewDialog } from "@/components/chat/chat-image";
 import type { LibraryAttachment } from "@/lib/api/schemas";
 import { cn } from "@/lib/utils";
 import {
@@ -39,6 +46,9 @@ export function LibraryBrowser({
 }) {
   const library = useLibraryQuery();
   const upload = useUppyUpload();
+  const pendingFiles = useComposerStore((s) => s.pendingFiles);
+  const queue = pendingFiles.filter((file) => file.status === "uploading" || file.status === "error");
+  const uploadingCount = queue.filter((file) => file.status === "uploading").length;
   const fileRef = useRef<HTMLInputElement>(null);
   const persistedFavorites = useLibraryFavorites((s) => s.ids);
   const toggleFavorite = useLibraryFavorites((s) => s.toggle);
@@ -52,6 +62,7 @@ export function LibraryBrowser({
   const [sort, setSort] = useState<Sort>("newest");
   const [kind, setKind] = useState<Kind>("all");
   const [density, setDensity] = useState<Density>("grid");
+  const [preview, setPreview] = useState<LibraryAttachment | null>(null);
 
   const items = useMemo(
     () => library.data?.pages.flatMap((page) => page.items) ?? [],
@@ -156,7 +167,10 @@ export function LibraryBrowser({
           />
         </label>
         <p className="mt-3 text-[13px] font-medium text-muted-foreground">
-          {visible.length} {visible.length === 1 ? "file" : "files"}
+          {items.length} {items.length === 1 ? "file" : "files"}
+          {uploadingCount
+            ? ` • ${uploadingCount} upload${uploadingCount === 1 ? "" : "s"} in progress`
+            : ""}
         </p>
       </div>
 
@@ -176,6 +190,54 @@ export function LibraryBrowser({
               Favorites
             </TabButton>
           </div>
+
+          {queue.length ? (
+            <section className="mt-6">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-[16px] font-semibold text-foreground">Upload queue</h2>
+                <p className="text-[13px] font-medium text-muted-foreground">
+                  {uploadingCount} in progress
+                </p>
+              </div>
+              <ul className="mt-3 flex flex-col gap-2">
+                {queue.map((file) => (
+                  <li
+                    key={file.id}
+                    className="flex h-12 items-center gap-3 rounded-full border border-border bg-background px-4"
+                  >
+                    {file.status === "uploading" ? (
+                      <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
+                    ) : (
+                      <X className="size-4 shrink-0 text-[#b42318]" />
+                    )}
+                    <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-foreground">
+                      {file.name}
+                    </span>
+                    <span className="shrink-0 text-[13px] font-medium text-muted-foreground">
+                      {file.status === "error" ? file.error || "Failed" : "Uploading..."}
+                    </span>
+                    {file.status === "error" ? (
+                      <button
+                        type="button"
+                        className="shrink-0 text-[13px] font-semibold text-foreground"
+                        onClick={() => upload.retry(file.id)}
+                      >
+                        Retry
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="inline-flex shrink-0 items-center gap-1 text-[13px] font-medium text-muted-foreground hover:text-foreground"
+                      onClick={() => upload.cancel(file.id)}
+                    >
+                      <X className="size-3.5" />
+                      Cancel
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
 
           {library.isError ? (
             <p role="alert" className="mt-8 text-[13px] text-[#b42318]">
@@ -214,6 +276,7 @@ export function LibraryBrowser({
                     onFavorite={() => toggleFavorite(item.id)}
                     onOpen={() => {
                       if (mode === "pick") onPick?.(item);
+                      else if (item.url && item.mimeType.startsWith("image/")) setPreview(item);
                       else if (item.url) window.open(item.url, "_blank", "noreferrer");
                     }}
                   />
@@ -234,6 +297,19 @@ export function LibraryBrowser({
           </button>
         </aside>
       </div>
+      {preview?.url
+        ? createPortal(
+            <ImagePreviewDialog
+              src={preview.url}
+              name={preview.filename}
+              createdAt={preview.createdAt}
+              source={preview.origin === "GENERATED" ? "Generated in chat" : "Uploaded"}
+              attachmentId={preview.id}
+              onClose={() => setPreview(null)}
+            />,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
@@ -282,48 +358,121 @@ function LibraryTile({
 }) {
   const src = item.thumbnailUrl || item.url || "";
   const image = Boolean(src) && item.mimeType.startsWith("image/");
+  const [copied, setCopied] = useState(false);
+
+  async function copyLink() {
+    if (!item.url) return;
+    try {
+      await navigator.clipboard.writeText(item.url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1200);
+    } catch {
+      setCopied(false);
+    }
+  }
+
   return (
     <div className={cn(density === "list" && "flex items-center gap-3 rounded-xl px-1 py-1 hover:bg-muted")}>
-      <button
-        type="button"
-        onClick={onOpen}
+      <div
         className={cn(
-          "group relative overflow-hidden bg-[#111] text-left",
+          "group relative overflow-hidden bg-[#111]",
           density === "grid" ? "w-full rounded-xl" : "size-14 shrink-0 rounded-lg",
           selectable && "ring-offset-2 hover:ring-2 hover:ring-foreground",
         )}
       >
-        {image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={src}
-            alt={item.filename}
-            className={cn("object-cover", density === "grid" ? "aspect-[16/10] w-full" : "size-14")}
-          />
-        ) : (
-          <div
-            className={cn(
-              "flex items-center justify-center bg-muted text-[11px] font-medium text-muted-foreground",
-              density === "grid" ? "aspect-[16/10] w-full px-2" : "size-14",
-            )}
-          >
-            {item.filename}
+        <button type="button" onClick={onOpen} className="block w-full text-left">
+          {image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={src}
+              alt={item.filename}
+              className={cn("object-cover", density === "grid" ? "aspect-[16/10] w-full" : "size-14")}
+            />
+          ) : (
+            <div
+              className={cn(
+                "flex items-center justify-center bg-muted text-[11px] font-medium text-muted-foreground",
+                density === "grid" ? "aspect-[16/10] w-full px-2" : "size-14",
+              )}
+            >
+              {item.filename}
+            </div>
+          )}
+        </button>
+        {density === "grid" ? (
+          <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-end p-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+            <div className="pointer-events-auto flex items-center gap-1.5">
+              <TileAction
+                label={copied ? "Copied link" : "Copy link"}
+                disabled={!item.url}
+                onClick={() => void copyLink()}
+              >
+                <Link2 className="size-3.5" />
+              </TileAction>
+              <TileAction
+                label="Download image"
+                disabled={!item.url}
+                onClick={() => item.url && void downloadImage(item.url, item.filename)}
+              >
+                <Download className="size-3.5" />
+              </TileAction>
+              <TileAction
+                label={favorited ? "Remove from favorites" : "Add to favorites"}
+                pressed={favorited}
+                onClick={onFavorite}
+              >
+                <Heart className={cn("size-3.5", favorited && "fill-foreground text-foreground")} />
+              </TileAction>
+            </div>
           </div>
-        )}
-      </button>
+        ) : null}
+      </div>
       <div className={cn("flex items-start justify-between gap-2", density === "grid" ? "mt-1.5" : "min-w-0 flex-1")}>
         <p className="min-w-0 truncate text-[12px] font-medium text-muted-foreground">{item.filename}</p>
-        <button
-          type="button"
-          aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
-          aria-pressed={favorited}
-          className="shrink-0 text-muted-foreground hover:text-foreground"
-          onClick={onFavorite}
-        >
-          <Heart className={cn("size-3.5", favorited && "fill-foreground text-foreground")} />
-        </button>
+        {density === "list" ? (
+          <button
+            type="button"
+            aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
+            aria-pressed={favorited}
+            className="shrink-0 text-muted-foreground hover:text-foreground"
+            onClick={onFavorite}
+          >
+            <Heart className={cn("size-3.5", favorited && "fill-foreground text-foreground")} />
+          </button>
+        ) : null}
       </div>
     </div>
+  );
+}
+
+function TileAction({
+  label,
+  children,
+  onClick,
+  disabled,
+  pressed,
+}: {
+  label: string;
+  children: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+  pressed?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      aria-pressed={pressed}
+      disabled={disabled}
+      className="flex size-7 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm hover:text-foreground disabled:opacity-50"
+      onClick={(event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        onClick();
+      }}
+    >
+      {children}
+    </button>
   );
 }
 

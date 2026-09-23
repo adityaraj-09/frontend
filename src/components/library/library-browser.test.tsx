@@ -1,10 +1,11 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { LibraryBrowser } from "./library-browser";
 import { LibraryDialog } from "./library-dialog";
+import { useComposerStore } from "@/stores/composer";
 import { useLibraryFavorites } from "@/stores/library";
 
 const items = [
@@ -51,6 +52,8 @@ function wrap(ui: ReactElement) {
 describe("LibraryBrowser", () => {
   afterEach(() => {
     useLibraryFavorites.setState({ ids: [] });
+    useComposerStore.setState({ pendingFiles: [] });
+    vi.unstubAllGlobals();
   });
 
   it("filters tabs and search like Magica", async () => {
@@ -74,6 +77,61 @@ describe("LibraryBrowser", () => {
     await user.type(screen.getByPlaceholderText("Search media..."), "chart");
     expect(screen.getByRole("img", { name: "chart.png" })).toBeInTheDocument();
     expect(screen.queryByRole("img", { name: "ai-crop.png" })).not.toBeInTheDocument();
+  });
+
+  it("shows an upload queue while a file is uploading", () => {
+    useComposerStore.setState({
+      pendingFiles: [
+        {
+          id: "file-1",
+          name: "Generated image.png",
+          progress: 20,
+          status: "uploading",
+        },
+      ],
+    });
+    render(wrap(<LibraryBrowser />));
+    expect(screen.getByRole("heading", { name: "Upload queue" })).toBeInTheDocument();
+    expect(screen.getByText("Generated image.png")).toBeInTheDocument();
+    expect(screen.getByText("Uploading...")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Cancel/ })).toBeInTheDocument();
+    expect(screen.getByText(/1 upload in progress/)).toBeInTheDocument();
+    expect(screen.getByText("1 in progress")).toBeInTheDocument();
+  });
+
+  it("copies, downloads, and favorites from icons on the library image", async () => {
+    const user = userEvent.setup();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
+    render(wrap(<LibraryBrowser />));
+
+    const copies = screen.getAllByRole("button", { name: "Copy link" });
+    const downloads = screen.getAllByRole("button", { name: "Download image" });
+    const favorites = screen.getAllByRole("button", { name: "Add to favorites" });
+    expect(copies.length).toBeGreaterThan(0);
+    expect(downloads.length).toBeGreaterThan(0);
+    expect(favorites.length).toBeGreaterThan(0);
+
+    await user.click(copies[0]);
+    expect(writeText).toHaveBeenCalledWith(items[0].url);
+
+    await user.click(favorites[0]);
+    expect(useLibraryFavorites.getState().ids).toContain(items[0].id);
+    expect(screen.getAllByRole("button", { name: "Remove from favorites" }).length).toBeGreaterThan(0);
+  });
+
+  it("opens the image preview dialog when a library image is clicked", async () => {
+    const user = userEvent.setup();
+    render(wrap(<LibraryBrowser />));
+
+    await user.click(screen.getByRole("img", { name: "chart.png" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Image Preview" });
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByRole("img", { name: "chart.png" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Copy link" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Download image" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Use as reference" })).toBeInTheDocument();
   });
 
   it("picks an asset from the same browser in a dialog", async () => {
