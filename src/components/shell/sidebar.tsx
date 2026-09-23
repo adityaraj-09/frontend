@@ -33,8 +33,8 @@ const NAV = [
   { href: "/projects", label: "Projects", icon: FolderOpen },
   { href: "/library", label: "Library", icon: Library },
   { href: "/tools", label: "Tools", icon: Boxes },
-  { href: "/api-docs", label: "API / MCP", icon: BookOpen },
-  { href: "/help", label: "Help & Support", icon: LifeBuoy },
+  { href: "https://magica-adi.mintlify.site/", label: "API / MCP", icon: BookOpen },
+  { href: "https://magica-help.mintlify.site/", label: "Help & Support", icon: LifeBuoy },
   { href: "/advantage", label: "Unfair Advantage", icon: Sparkles },
 ] as const;
 
