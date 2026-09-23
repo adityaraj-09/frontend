@@ -9,7 +9,7 @@ import { chatApi } from "@/lib/api/services";
 import { ForkTaskDialog } from "./fork-task-dialog";
 import type { ContentBlock, Message, RunSnapshot } from "@/lib/api/schemas";
 import { parseBlocks } from "@/hooks/use-messages";
-import { formatDuration, formatTurnUsage, liveStepLabel, toolLabel } from "@/lib/format";
+import { formatDuration, formatTurnUsage, isActiveRun, liveStepLabel, toolLabel } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ChatImage, ChatImageMetaContext } from "./chat-image";
 import { MarkdownText, mergeAssistantText, normalizeMediaUrl } from "./markdown-text";
@@ -195,8 +195,9 @@ function AssistantTurn({
 }) {
   const blocks = parseBlocks(message.contentBlocks);
   const live =
-    snapshot?.assistantMessageId === message.id ||
-    (message.status === "STREAMING" && !snapshot?.assistantMessageId);
+    isActiveRun(snapshot?.status) &&
+    (snapshot?.assistantMessageId === message.id ||
+      (message.status === "STREAMING" && !snapshot?.assistantMessageId));
   const results = new Map(
     blocks
       .filter((block): block is Extract<ContentBlock, { type: "tool_result" }> => block.type === "tool_result")

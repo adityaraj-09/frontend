@@ -96,6 +96,21 @@ describe("MessageList", () => {
     expect(screen.getByText("Analyze the image").tagName).toBe("STRONG");
   });
 
+  it("shows copy and fork when the run snapshot is already complete", () => {
+    const message = msg("aaaaaaaa-1111-1111-1111-111111111111", "ASSISTANT", "Here is the answer");
+    view(
+      <div style={{ height: 640 }}>
+        <MessageList
+          messages={[message]}
+          streamText="Here is the answer"
+          snapshot={{ assistantMessageId: message.id, status: "COMPLETE" }}
+        />
+      </div>,
+    );
+    expect(screen.getByRole("button", { name: "Copy" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Fork task" })).toBeInTheDocument();
+  });
+
   it("shows turn cost and token usage on a finished reply", async () => {
     const message = msg("aaaaaaaa-1111-1111-1111-111111111111", "ASSISTANT", "Done");
     message.usage = {

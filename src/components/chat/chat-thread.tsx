@@ -32,13 +32,12 @@ export function ChatThread({ chatId }: { chatId: string }) {
   const realtime = useRunRealtime(chatId, activeRun.data?.runId ?? undefined);
   const turn = pending?.chatId === chatId ? pending : null;
   const snapshot = useMemo(() => {
-    if (turn && !isActiveRun(realtime.snapshot?.status)) {
+    if (turn && realtime.snapshot?.status == null) {
       return {
-        ...realtime.snapshot,
         chatId,
         status: "THINKING" as const,
-        currentStep: realtime.snapshot?.currentStep ?? "thinking",
-        assistantMessageId: realtime.snapshot?.assistantMessageId ?? turn.assistantId,
+        currentStep: "thinking",
+        assistantMessageId: turn.assistantId,
       };
     }
     return realtime.snapshot;
@@ -53,7 +52,8 @@ export function ChatThread({ chatId }: { chatId: string }) {
     if (!turn) return;
     const liveId = realtime.snapshot?.assistant?.id;
     if (liveId && liveId !== turn.assistantId) setPending(null);
-  }, [turn, realtime.snapshot?.assistant?.id, setPending]);
+    if (realtime.snapshot?.status && !isActiveRun(realtime.snapshot.status)) setPending(null);
+  }, [turn, realtime.snapshot?.assistant?.id, realtime.snapshot?.status, setPending]);
 
   useEffect(() => {
     if (!realtime.snapshot?.status || isActiveRun(realtime.snapshot.status)) return;
