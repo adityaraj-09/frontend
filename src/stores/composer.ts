@@ -4,6 +4,7 @@ export type PendingFile = {
   id: string;
   name: string;
   previewUrl?: string;
+  mimeType?: string;
   progress: number;
   status: "uploading" | "complete" | "error" | "cancelled";
   error?: string;

@@ -8,12 +8,21 @@ export type ActiveRun = {
   messageId: string;
 };
 
+export type PendingAttachment = {
+  id: string;
+  filename: string;
+  mimeType: string;
+  url: string;
+  thumbnailUrl?: string | null;
+};
+
 export type PendingTurn = {
   chatId: string;
   text: string;
   userId: string;
   assistantId: string;
   createdAt: string;
+  attachments: PendingAttachment[];
 };
 
 type RunSessionState = {

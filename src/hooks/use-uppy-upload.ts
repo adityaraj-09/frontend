@@ -90,6 +90,7 @@ export function useUppyUpload(chatId?: string) {
       upsertPendingFile({
         id: file.id,
         name: file.name,
+        mimeType: file.type ?? undefined,
         progress: 0,
         status: "uploading",
         previewUrl: file.type?.startsWith("image/") ? URL.createObjectURL(file.data) : undefined,

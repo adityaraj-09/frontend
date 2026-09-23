@@ -226,7 +226,8 @@ export function Composer({
           upsertPendingFile({
             id: item.id,
             name: item.filename,
-            previewUrl: previewFor(item),
+            previewUrl: item.url || previewFor(item),
+            mimeType: item.mimeType,
             progress: 100,
             status: "complete",
             attachmentId: item.id,

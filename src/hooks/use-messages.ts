@@ -4,7 +4,7 @@ import { useInfiniteQuery, type InfiniteData, type QueryClient } from "@tanstack
 import { messageApi } from "@/lib/api/services";
 import { queryKeys } from "@/lib/query/keys";
 import { contentBlockSchema, type ContentBlock, type Message, type RunSnapshot } from "@/lib/api/schemas";
-import type { PendingTurn } from "@/stores/run-session";
+import type { PendingAttachment, PendingTurn } from "@/stores/run-session";
 
 export function parseBlocks(raw: unknown[]): ContentBlock[] {
   return raw.flatMap((block) => {
@@ -86,6 +86,38 @@ export function userTextOf(message: Message): string {
     .join("");
 }
 
+function messageHasImages(message: Message): boolean {
+  if (message.attachments.some((file) => file.mimeType.startsWith("image/") && (file.url || file.thumbnailUrl))) {
+    return true;
+  }
+  return parseBlocks(message.contentBlocks).some(
+    (block) => block.type === "asset" && block.mimeType.startsWith("image/"),
+  );
+}
+
+function pendingUserBlocks(pending: PendingTurn): unknown[] {
+  return [
+    { type: "text" as const, text: pending.text },
+    ...pending.attachments.map((file) => ({
+      type: "asset" as const,
+      url: file.url,
+      mimeType: file.mimeType,
+      filename: file.filename,
+    })),
+  ];
+}
+
+function pendingMessageAttachments(files: PendingAttachment[]): Message["attachments"] {
+  return files.map((file) => ({
+    id: file.id,
+    filename: file.filename,
+    mimeType: file.mimeType,
+    url: file.url,
+    thumbnailUrl: file.thumbnailUrl ?? file.url,
+    status: "COMPLETE",
+  }));
+}
+
 export function applyPendingTurn(messages: Message[], pending?: PendingTurn | null): Message[] {
   if (!pending) return messages;
   const hasUser = messages.some(
@@ -98,18 +130,29 @@ export function applyPendingTurn(messages: Message[], pending?: PendingTurn | nu
       message.role === "ASSISTANT" &&
       (message.id === pending.assistantId || message.status === "STREAMING"),
   );
-  const next = [...messages];
+  const next = messages.map((message) => {
+    if (!hasUser) return message;
+    const match =
+      message.id === pending.userId ||
+      (message.role === "USER" && userTextOf(message) === pending.text);
+    if (!match || messageHasImages(message) || pending.attachments.length === 0) return message;
+    return {
+      ...message,
+      contentBlocks: pendingUserBlocks(pending),
+      attachments: pendingMessageAttachments(pending.attachments),
+    };
+  });
   if (!hasUser) {
     next.push({
       id: pending.userId,
       chatId: pending.chatId,
       role: "USER",
       status: "SUCCESS",
-      contentBlocks: [{ type: "text", text: pending.text }],
+      contentBlocks: pendingUserBlocks(pending),
       createdAt: pending.createdAt,
       errorCode: null,
       errorMessage: null,
-      attachments: [],
+      attachments: pendingMessageAttachments(pending.attachments),
     });
   }
   if (!hasAssistant) {

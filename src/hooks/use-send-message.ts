@@ -47,6 +47,7 @@ export function useSendMessage(chatId?: string) {
         userId: clientMessageId,
         assistantId: crypto.randomUUID(),
         createdAt: new Date().toISOString(),
+        attachments: snapshotsForSend(files),
       };
       setPending(pending);
       seedPendingMessages(queryClient, pending);
@@ -99,6 +100,41 @@ export function useSendMessage(chatId?: string) {
       setError("Could not send. Check your connection and retry.");
     },
   });
+}
+
+function snapshotsForSend(attachmentIds: string[]): Array<{
+  id: string;
+  filename: string;
+  mimeType: string;
+  url: string;
+  thumbnailUrl?: string | null;
+}> {
+  const files = useComposerStore.getState().pendingFiles;
+  return attachmentIds.flatMap((id) => {
+    const file = files.find((item) => item.attachmentId === id);
+    const url = file?.previewUrl;
+    if (!url) return [];
+    return [
+      {
+        id,
+        filename: file.name,
+        mimeType: file.mimeType || mimeFromName(file.name),
+        url,
+        thumbnailUrl: url,
+      },
+    ];
+  });
+}
+
+function mimeFromName(name: string): string {
+  const ext = name.split(".").pop()?.toLowerCase();
+  if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
+  if (ext === "webp") return "image/webp";
+  if (ext === "gif") return "image/gif";
+  if (ext === "mp4") return "video/mp4";
+  if (ext === "webm") return "video/webm";
+  if (ext === "mov") return "video/quicktime";
+  return "image/png";
 }
 
 function projectIdFromLocation(): string | undefined {

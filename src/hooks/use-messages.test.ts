@@ -64,6 +64,7 @@ describe("applyPendingTurn", () => {
     userId: "aaaaaaaa-1111-1111-1111-111111111111",
     assistantId: "bbbbbbbb-1111-1111-1111-111111111111",
     createdAt: "2026-09-22T10:00:00.000Z",
+    attachments: [],
   };
 
   it("injects the user bubble and a streaming assistant so Thinking… can show immediately", () => {
@@ -71,6 +72,67 @@ describe("applyPendingTurn", () => {
     expect(next.map((message) => message.role)).toEqual(["USER", "ASSISTANT"]);
     expect(next[1]?.status).toBe("STREAMING");
     expect(next[0]?.contentBlocks).toEqual([{ type: "text", text: "explain this image" }]);
+  });
+
+  it("puts library images on the optimistic user bubble", () => {
+    const next = applyPendingTurn([], {
+      ...pending,
+      attachments: [
+        {
+          id: "dddddddd-1111-1111-1111-111111111111",
+          filename: "shot.png",
+          mimeType: "image/png",
+          url: "https://cdn.example/shot.png",
+        },
+      ],
+    });
+    const user = next.find((message) => message.role === "USER");
+    expect(user?.attachments).toEqual([
+      expect.objectContaining({
+        id: "dddddddd-1111-1111-1111-111111111111",
+        url: "https://cdn.example/shot.png",
+        mimeType: "image/png",
+      }),
+    ]);
+    expect(user?.contentBlocks).toEqual(
+      expect.arrayContaining([
+        { type: "text", text: "explain this image" },
+        {
+          type: "asset",
+          url: "https://cdn.example/shot.png",
+          mimeType: "image/png",
+          filename: "shot.png",
+        },
+      ]),
+    );
+  });
+
+  it("fills images onto a server user bubble that arrived without them", () => {
+    const user: Message = {
+      id: "cccccccc-1111-1111-1111-111111111111",
+      chatId: pending.chatId,
+      role: "USER",
+      status: "SUCCESS",
+      contentBlocks: [{ type: "text", text: "explain this image" }],
+      createdAt: pending.createdAt,
+      errorCode: null,
+      errorMessage: null,
+      attachments: [],
+    };
+    const next = applyPendingTurn([user], {
+      ...pending,
+      attachments: [
+        {
+          id: "dddddddd-1111-1111-1111-111111111111",
+          filename: "shot.png",
+          mimeType: "image/png",
+          url: "https://cdn.example/shot.png",
+        },
+      ],
+    });
+    expect(next.find((message) => message.role === "USER")?.attachments[0]?.url).toBe(
+      "https://cdn.example/shot.png",
+    );
   });
 
   it("does not duplicate when the server user message already landed", () => {

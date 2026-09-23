@@ -69,7 +69,21 @@ describe("useSendMessage", () => {
         finishSend = resolve;
       }),
     );
-    useComposerStore.setState({ text: "explain this" });
+    useComposerStore.setState({
+      text: "explain this",
+      attachmentIds: ["11111111-1111-1111-1111-111111111111"],
+      pendingFiles: [
+        {
+          id: "11111111-1111-1111-1111-111111111111",
+          name: "shot.png",
+          mimeType: "image/png",
+          previewUrl: "https://cdn.example/shot.png",
+          progress: 100,
+          status: "complete",
+          attachmentId: "11111111-1111-1111-1111-111111111111",
+        },
+      ],
+    });
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const { result } = renderHook(() => useSendMessage(), { wrapper: wrap(client) });
 
@@ -81,6 +95,19 @@ describe("useSendMessage", () => {
     expect(send).toHaveBeenCalled();
     expect(useRunSessionStore.getState().pending?.chatId).toBe(chatId);
     expect(useRunSessionStore.getState().pending?.text).toBe("explain this");
+    expect(useRunSessionStore.getState().pending?.attachments).toEqual([
+      expect.objectContaining({
+        id: "11111111-1111-1111-1111-111111111111",
+        url: "https://cdn.example/shot.png",
+        mimeType: "image/png",
+      }),
+    ]);
+    expect(send).toHaveBeenCalledWith(
+      chatId,
+      expect.objectContaining({
+        attachmentIds: ["11111111-1111-1111-1111-111111111111"],
+      }),
+    );
 
     await act(async () => {
       finishSend({
