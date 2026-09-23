@@ -3,6 +3,20 @@ import { applyPendingTurn, mergeLiveTools, preferAssistant, visibleWaitpoint } f
 import type { Message } from "@/lib/api/schemas";
 
 describe("live snapshot merge", () => {
+  it("prefers the assistant payload with more streamed text when block counts match", () => {
+    const live = {
+      id: "aaaaaaaa-1111-1111-1111-111111111111",
+      status: "STREAMING",
+      contentBlocks: [{ type: "text", text: "Hello there" }],
+    };
+    const rest = {
+      id: live.id,
+      status: "STREAMING",
+      contentBlocks: [{ type: "text", text: "Hel" }],
+    };
+    expect(preferAssistant(live, rest)?.contentBlocks).toEqual([{ type: "text", text: "Hello there" }]);
+  });
+
   it("keeps the assistant payload with more blocks so images appear as they land", () => {
     const live = {
       id: "aaaaaaaa-1111-1111-1111-111111111111",

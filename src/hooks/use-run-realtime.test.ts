@@ -12,6 +12,7 @@ const subscribe = vi.fn((..._args: unknown[]) => ({
 
 vi.mock("@trigger.dev/react-hooks", () => ({
   useRealtimeRunWithStreams: (...args: unknown[]) => subscribe(...args),
+  useRealtimeStream: () => ({ parts: [], error: undefined }),
 }));
 
 const snapshot = vi.fn();

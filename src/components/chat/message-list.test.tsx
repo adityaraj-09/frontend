@@ -54,6 +54,22 @@ describe("MessageList", () => {
     expect(screen.queryByText("Turn 39")).not.toBeInTheDocument();
   });
 
+  it("paints tokens on a live assistant before any text is saved", () => {
+    const message = msg("aaaaaaaa-1111-1111-1111-111111111111", "ASSISTANT", "");
+    message.status = "STREAMING";
+    message.contentBlocks = [];
+    render(
+      <div style={{ height: 640 }}>
+        <MessageList
+          messages={[message]}
+          streamText="Hello from the model"
+          snapshot={{ assistantMessageId: message.id, status: "THINKING" }}
+        />
+      </div>,
+    );
+    expect(screen.getByText("Hello from the model")).toBeInTheDocument();
+  });
+
   it("renders assistant markdown once when the stream repeats the saved text", () => {
     const text = "1. **Analyze the image**";
     render(

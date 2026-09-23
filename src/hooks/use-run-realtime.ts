@@ -1,12 +1,12 @@
 "use client";
 
-import { useRealtimeRunWithStreams } from "@trigger.dev/react-hooks";
+import { useRealtimeRunWithStreams, useRealtimeStream } from "@trigger.dev/react-hooks";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef } from "react";
 import { runApi } from "@/lib/api/services";
 import { queryKeys } from "@/lib/query/keys";
 import { runSnapshotSchema, type RunSnapshot } from "@/lib/api/schemas";
-import { mergeLiveTools, preferAssistant, visibleWaitpoint } from "@/hooks/use-messages";
+import { mergeLiveTools, parseBlocks, preferAssistant, visibleWaitpoint } from "@/hooks/use-messages";
 import { isActiveRun, preferRunStatus } from "@/lib/format";
 import { useRunSessionStore } from "@/stores/run-session";
 
@@ -59,7 +59,7 @@ export function useRunRealtime(chatId: string | undefined, seedRunId?: string) {
     enabled: Boolean(chatId && runId),
     refetchInterval: (query) => {
       if (!isActiveRun(query.state.data?.status)) return false;
-      return sessionTriggerId && sessionToken ? 8000 : 2500;
+      return sessionTriggerId && sessionToken ? 4000 : 800;
     },
   });
 
@@ -72,6 +72,17 @@ export function useRunRealtime(chatId: string | undefined, seedRunId?: string) {
     enabled: liveEnabled,
     baseURL: process.env.NEXT_PUBLIC_TRIGGER_API_URL || undefined,
   });
+  const assistantStream = useRealtimeStream<{ type?: string; text?: string }>(
+    triggerRunId ?? "",
+    "assistant-text",
+    {
+      accessToken: token,
+      enabled: liveEnabled,
+      timeoutInSeconds: 600,
+      throttleInMs: 16,
+      baseURL: process.env.NEXT_PUBLIC_TRIGGER_API_URL || undefined,
+    },
+  );
 
   const liveMetadata = useMemo(() => {
     const meta = (realtime.run as { metadata?: unknown } | undefined)?.metadata;
@@ -80,11 +91,14 @@ export function useRunRealtime(chatId: string | undefined, seedRunId?: string) {
   }, [realtime.run]);
 
   useEffect(() => {
-    const parts = (realtime.streams as Record<string, unknown> | undefined)?.["assistant-text"];
-    const joined = joinAssistantStream(parts);
+    const fromStream = joinAssistantStream(assistantStream.parts);
+    const fromLegacy = joinAssistantStream(
+      (realtime.streams as Record<string, unknown> | undefined)?.["assistant-text"],
+    );
+    const joined = fromStream || fromLegacy;
     if (!joined) return;
     setStreamText(joined);
-  }, [realtime.streams, setStreamText]);
+  }, [assistantStream.parts, realtime.streams, setStreamText]);
 
   const status = preferRunStatus(liveMetadata?.status, snapshotQuery.data?.status);
 
@@ -135,10 +149,18 @@ export function useRunRealtime(chatId: string | undefined, seedRunId?: string) {
 
   return {
     snapshot: view,
-    streamText,
+    streamText: streamText || textFromAssistant(view?.assistant),
     isLive: liveEnabled && !realtimeFailed,
     isPolling: !liveEnabled || realtimeFailed,
     error: realtime.error,
     refetch: snapshotQuery.refetch,
   };
+}
+
+function textFromAssistant(assistant?: { contentBlocks?: unknown[] } | null): string {
+  if (!assistant?.contentBlocks?.length) return "";
+  return parseBlocks(assistant.contentBlocks)
+    .filter((block): block is { type: "text"; text: string } => block.type === "text")
+    .map((block) => block.text)
+    .join("");
 }

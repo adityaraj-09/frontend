@@ -46,7 +46,16 @@ export function preferAssistant(
 ): RunSnapshot["assistant"] | null {
   if (!live) return rest ?? null;
   if (!rest) return live;
-  return (live.contentBlocks?.length ?? 0) >= (rest.contentBlocks?.length ?? 0) ? live : rest;
+  const liveBlocks = live.contentBlocks?.length ?? 0;
+  const restBlocks = rest.contentBlocks?.length ?? 0;
+  if (liveBlocks !== restBlocks) return liveBlocks > restBlocks ? live : rest;
+  return assistantTextLength(live) >= assistantTextLength(rest) ? live : rest;
+}
+
+function assistantTextLength(assistant: NonNullable<RunSnapshot["assistant"]>): number {
+  return parseBlocks(assistant.contentBlocks ?? [])
+    .filter((block): block is Extract<ContentBlock, { type: "text" }> => block.type === "text")
+    .reduce((sum, block) => sum + block.text.length, 0);
 }
 
 export function mergeLiveTools(

@@ -82,5 +82,5 @@ export function mergeAssistantText(persisted: string, stream: string, live: bool
   if (!persisted) return stream;
   if (stream.startsWith(persisted)) return stream;
   if (persisted.startsWith(stream) || persisted.includes(stream)) return persisted;
-  return persisted + stream;
+  return persisted;
 }
