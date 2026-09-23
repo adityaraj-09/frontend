@@ -64,7 +64,11 @@ export function mergeLiveTools(
 ): RunSnapshot["tools"] {
   const byId = new Map<string, NonNullable<RunSnapshot["tools"]>[number]>();
   for (const tool of rest ?? []) byId.set(tool.toolCallId, tool);
-  for (const tool of live ?? []) byId.set(tool.toolCallId, { ...byId.get(tool.toolCallId), ...tool });
+  for (const tool of live ?? []) {
+    const current = byId.get(tool.toolCallId);
+    const input = tool.input ?? current?.input;
+    byId.set(tool.toolCallId, input !== undefined ? { ...current, ...tool, input } : { ...current, ...tool });
+  }
   return [...byId.values()];
 }
 

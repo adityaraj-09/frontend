@@ -266,7 +266,7 @@ function AssistantTurn({
         <ToolRow
           key={tool.toolCallId}
           name={tool.toolName}
-          input={{}}
+          input={tool.input ?? {}}
           output={undefined}
           error={tool.errorMessage ?? undefined}
           status={tool.status}
@@ -400,7 +400,10 @@ function FieldList({ input, output, toolName }: { input: unknown; output: unknow
           <FieldValue
             value={field.value}
             label={field.label}
-            prompt={stringField(flattenRecord(asRecord(input)), ["prompt"])}
+            prompt={
+              stringField(flattenRecord(asRecord(input)), ["prompt"]) ||
+              stringField(flattenRecord(asRecord(output)), ["prompt"])
+            }
           />
         </div>
       ))}
@@ -556,7 +559,8 @@ function generationPrompts(blocks: ContentBlock[]): { byUrl: Map<string, string>
   let first: string | undefined;
   for (const block of blocks) {
     if (block.type !== "tool_result") continue;
-    const prompt = inputs.get(block.toolCallId);
+    const fromOutput = stringField(flattenRecord(asRecord(block.output)), ["prompt"]);
+    const prompt = inputs.get(block.toolCallId) ?? fromOutput;
     const url = stringField(flattenRecord(asRecord(block.output)), ["image_url", "video_url", "url"]);
     if (prompt && !first) first = prompt;
     if (prompt && url) byUrl.set(normalizeMediaUrl(url), prompt);
@@ -606,7 +610,8 @@ function toolFields(toolName: string, input: unknown, output: unknown): Field[] 
   }
   const imageUrl = stringField(record, ["image_url", "image", "input_image"]);
   if (imageUrl) fields.push({ label: "Input Image", value: { kind: "image", url: imageUrl } });
-  const prompt = stringField(record, ["prompt"]);
+  const prompt =
+    stringField(record, ["prompt"]) || stringField(flattenRecord(asRecord(output)), ["prompt"]);
   if (prompt) fields.push({ label: "Prompt", value: { kind: "text", text: prompt } });
   pushNumber(fields, "X Position (%)", record.x_percent ?? record.x);
   pushNumber(fields, "Y Position (%)", record.y_percent ?? record.y);

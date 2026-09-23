@@ -197,6 +197,7 @@ export const toolLiveSchema = z.object({
   toolName: z.string(),
   status: z.enum(["PENDING", "RUNNING", "SUCCESS", "FAILED", "CANCELLED"]),
   errorMessage: z.string().nullable().optional(),
+  input: z.unknown().optional(),
 });
 
 export const waitpointOverlaySchema = z.object({

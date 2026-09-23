@@ -282,12 +282,21 @@ describe("MessageList", () => {
             assistantMessageId: current.id,
             status: "WORKING",
             currentStep: "tools:1",
-            tools: [{ toolCallId: "call_live", toolName: "gpt_image_2", status: "RUNNING" }],
+            tools: [
+              {
+                toolCallId: "call_live",
+                toolName: "gpt_image_2",
+                status: "RUNNING",
+                input: { prompt: "a snowy mountain at dusk" },
+              },
+            ],
           }}
         />
       </div>,
     );
     expect(screen.getByText("Hello there.")).toBeInTheDocument();
     expect(screen.getAllByText("Generate image")).toHaveLength(1);
+    expect(screen.getByText("Prompt")).toBeInTheDocument();
+    expect(screen.getByText("a snowy mountain at dusk")).toBeInTheDocument();
   });
 });
