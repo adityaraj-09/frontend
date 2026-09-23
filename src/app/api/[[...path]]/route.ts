@@ -17,6 +17,9 @@ const HOP = new Set([
   "upgrade",
   "host",
   "content-length",
+  // Node fetch already decodes gzip/br. Forwarding these makes the browser
+  // try to decode a plain body → net::ERR_CONTENT_DECODING_FAILED.
+  "content-encoding",
 ]);
 
 /** Next.js rejects a route-handler response that carries middleware rewrite headers. Clerk adds them on the backend. */
@@ -45,6 +48,7 @@ async function proxy(request: Request, context: { params: Promise<{ path?: strin
   });
   if (authorization) headers.set("authorization", authorization);
   else headers.delete("authorization");
+  headers.set("accept-encoding", "identity");
 
   const init: RequestInit = {
     method: request.method,
