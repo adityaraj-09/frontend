@@ -76,7 +76,7 @@ export function MessageList({
         <div className="flex justify-center py-3">
           <button
             type="button"
-            className="text-[12px] font-semibold text-[#404040]"
+            className="text-[12px] font-semibold text-muted-foreground"
             disabled={isFetchingEarlier}
             onClick={() => void onLoadEarlier?.()}
           >
@@ -123,7 +123,7 @@ function UserBubble({ message }: { message: Message }) {
   const files = message.attachments.filter((file) => !file.mimeType.startsWith("image/"));
   return (
     <div className="flex justify-end">
-      <div className="max-w-[420px] rounded-[20px] bg-[#f3f3f5] p-2 text-[14px] leading-6 text-[#1b1b1b]">
+      <div className="max-w-[420px] rounded-[20px] bg-muted p-2 text-[14px] leading-6 text-foreground">
         {images.map((image) => (
           <ChatImageMetaContext.Provider
             key={image.url}
@@ -147,7 +147,7 @@ function UserBubble({ message }: { message: Message }) {
         {files.length ? (
           <div className="flex flex-wrap gap-2 px-2 pb-1">
             {files.map((file) => (
-              <span key={file.id} className="text-[12px] font-medium text-[#404040]">
+              <span key={file.id} className="text-[12px] font-medium text-muted-foreground">
                 {file.filename}
               </span>
             ))}
@@ -190,7 +190,9 @@ function AssistantTurn({
   streamText: string;
 }) {
   const blocks = parseBlocks(message.contentBlocks);
-  const live = snapshot?.assistantMessageId === message.id || message.status === "STREAMING";
+  const live =
+    snapshot?.assistantMessageId === message.id ||
+    (message.status === "STREAMING" && !snapshot?.assistantMessageId);
   const results = new Map(
     blocks
       .filter((block): block is Extract<ContentBlock, { type: "tool_result" }> => block.type === "tool_result")
@@ -208,7 +210,9 @@ function AssistantTurn({
   const seenTools = new Set(
     blocks.filter((block) => block.type === "tool_use").map((block) => block.toolCallId),
   );
-  const pendingLive = (snapshot?.tools ?? []).filter((tool) => !seenTools.has(tool.toolCallId));
+  const pendingLive = live
+    ? (snapshot?.tools ?? []).filter((tool) => !seenTools.has(tool.toolCallId))
+    : [];
   const assets = blocks.filter(
     (block): block is Extract<ContentBlock, { type: "asset" }> => block.type === "asset",
   );
@@ -219,8 +223,8 @@ function AssistantTurn({
     snapshot?.waitpoint && snapshot.waitpoint.type !== "MEDIA" && snapshot.waitpoint.status === "WAITING"
       ? snapshot.waitpoint
       : null;
-  const failed = message.status === "FAILED" || snapshot?.status === "FAILED";
-  const cancelled = message.status === "CANCELLED" || snapshot?.status === "CANCELLED";
+  const failed = message.status === "FAILED" || (live && snapshot?.status === "FAILED");
+  const cancelled = message.status === "CANCELLED" || (live && snapshot?.status === "CANCELLED");
   const hasVisible = blocks.some((block) => block.type !== "tool_result") || Boolean(text) || pendingLive.length > 0;
 
   return (
@@ -292,7 +296,7 @@ function AssistantTurn({
           {message.errorMessage || snapshot?.errorMessage || "This turn failed. Send another message to retry."}
         </p>
       ) : null}
-      {cancelled ? <p className="text-[13px] text-[#404040]">Stopped.</p> : null}
+      {cancelled ? <p className="text-[13px] text-muted-foreground">Stopped.</p> : null}
       {live && waitpoint ? (
         <WaitpointCard chatId={snapshot?.chatId ?? message.chatId} waitpoint={waitpoint} />
       ) : null}
@@ -309,7 +313,7 @@ function LiveStatus({
   status?: string | null;
 }) {
   return (
-    <p className="flex items-center gap-2 text-[13px] font-medium text-[#404040]">
+    <p className="flex items-center gap-2 text-[13px] font-medium text-muted-foreground">
       <Loader2 className="size-3.5 animate-spin" />
       {liveStepLabel(currentStep, status)}
     </p>
@@ -323,13 +327,13 @@ function ThinkingNote({ text, durationMs }: { text: string; durationMs?: number 
     <div>
       <button
         type="button"
-        className="flex items-center gap-1 text-[13px] font-semibold text-[#404040]"
+        className="flex items-center gap-1 text-[13px] font-semibold text-muted-foreground"
         onClick={() => setOpen((value) => !value)}
       >
         <ChevronDown className={cn("size-3.5", !open && "-rotate-90")} />
         Thinking{duration ? ` · ${duration}` : ""}
       </button>
-      {open ? <p className="mt-2 max-w-[640px] text-[13px] font-medium leading-5 text-[#404040]">{text}</p> : null}
+      {open ? <p className="mt-2 max-w-[640px] text-[13px] font-medium leading-5 text-muted-foreground">{text}</p> : null}
     </div>
   );
 }
@@ -360,19 +364,19 @@ function ToolRow({
     <div>
       <button
         type="button"
-        className="flex w-full items-center gap-2 rounded-lg px-1 py-1.5 text-left hover:bg-[#fafafa]"
+        className="flex w-full items-center gap-2 rounded-lg px-1 py-1.5 text-left hover:bg-muted"
         onClick={() => setOpen((value) => !value)}
       >
         <Icon className={cn("size-4 stroke-[1.7]", iconTone(name))} />
-        <span className="text-[13px] font-semibold text-[#1b1b1b]">{toolLabel(name)}</span>
+        <span className="text-[13px] font-semibold text-foreground">{toolLabel(name)}</span>
         {success ? <Check className="size-3.5 text-[#16a34a]" strokeWidth={2.5} /> : null}
-        {running ? <Loader2 className="size-3.5 animate-spin text-[#404040]" /> : null}
+        {running ? <Loader2 className="size-3.5 animate-spin text-muted-foreground" /> : null}
         {error ? <span className="text-[11px] font-semibold text-[#b42318]">Failed</span> : null}
-        {duration ? <span className="text-[12px] font-medium text-[#404040]">{duration}</span> : null}
-        <ChevronDown className={cn("ml-auto size-3.5 text-[#404040]", open && "rotate-180")} />
+        {duration ? <span className="text-[12px] font-medium text-muted-foreground">{duration}</span> : null}
+        <ChevronDown className={cn("ml-auto size-3.5 text-muted-foreground", open && "rotate-180")} />
       </button>
       {open ? (
-        <div className="mb-2 ml-6 rounded-2xl border border-[#ededed] bg-white p-4">
+        <div className="mb-2 ml-6 rounded-2xl border border-border bg-background p-4">
           {name === "web_search" ? (
             <WebSearchBody output={output} input={input} />
           ) : (
@@ -392,7 +396,7 @@ function FieldList({ input, output, toolName }: { input: unknown; output: unknow
     <div className="flex flex-col gap-3">
       {fields.map((field) => (
         <div key={field.label} className="grid grid-cols-[140px_1fr] items-start gap-3">
-          <div className="pt-0.5 text-[13px] font-semibold text-[#404040]">{field.label}</div>
+          <div className="pt-0.5 text-[13px] font-semibold text-muted-foreground">{field.label}</div>
           <FieldValue
             value={field.value}
             label={field.label}
@@ -415,7 +419,7 @@ function FieldValue({ value, label, prompt }: { value: FieldValue; label: string
       />
     );
   }
-  return <div className="text-[13px] text-[#1b1b1b]">{value.text}</div>;
+  return <div className="text-[13px] text-foreground">{value.text}</div>;
 }
 
 function WebSearchBody({ output, input }: { output: unknown; input: unknown }) {
@@ -429,9 +433,9 @@ function WebSearchBody({ output, input }: { output: unknown; input: unknown }) {
   return (
     <div>
       {query ? (
-        <div className="mb-3 rounded-xl border border-[#ededed] px-3 py-2">
-          <div className="text-[11px] font-semibold text-[#404040]">Queries</div>
-          <p className="text-[13px] font-medium text-[#1b1b1b]">{query}</p>
+        <div className="mb-3 rounded-xl border border-border px-3 py-2">
+          <div className="text-[11px] font-semibold text-muted-foreground">Queries</div>
+          <p className="text-[13px] font-medium text-foreground">{query}</p>
         </div>
       ) : null}
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -446,19 +450,19 @@ function WebSearchBody({ output, input }: { output: unknown; input: unknown }) {
               href={url || undefined}
               target="_blank"
               rel="noreferrer"
-              className="overflow-hidden rounded-xl border border-[#ededed]"
+              className="overflow-hidden rounded-xl border border-border"
             >
               {typeof item?.image === "string" ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={item.image} alt="" className="h-24 w-full object-cover" />
               ) : (
-                <div className="flex h-24 items-center justify-center bg-[#ece6f0] text-[#1b1b1b]">
+                <div className="flex h-24 items-center justify-center bg-[#ece6f0] text-foreground">
                   <Globe className="size-6" />
                 </div>
               )}
               <div className="p-2">
-                <div className="truncate text-[11px] text-[#404040]">{host}</div>
-                <div className="line-clamp-2 text-[12px] font-semibold text-[#1b1b1b]">{title}</div>
+                <div className="truncate text-[11px] text-muted-foreground">{host}</div>
+                <div className="line-clamp-2 text-[12px] font-semibold text-foreground">{title}</div>
               </div>
             </a>
           );
@@ -497,15 +501,15 @@ function ReplyActions({
   }
 
   return (
-    <div className="flex items-center gap-3 text-[#404040]">
-      <button type="button" aria-label={copied ? "Copied" : "Copy"} className="hover:text-[#1b1b1b]" onClick={() => void copy()}>
+    <div className="flex items-center gap-3 text-muted-foreground">
+      <button type="button" aria-label={copied ? "Copied" : "Copy"} className="hover:text-foreground" onClick={() => void copy()}>
         {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
       </button>
       <button
         type="button"
         aria-label="Like"
         aria-pressed={vote === "up"}
-        className={cn("hover:text-[#1b1b1b]", vote === "up" && "text-[#1b1b1b]")}
+        className={cn("hover:text-foreground", vote === "up" && "text-foreground")}
         onClick={() => setVote((current) => (current === "up" ? null : "up"))}
       >
         <ThumbsUp className="size-3.5" />
@@ -514,7 +518,7 @@ function ReplyActions({
         type="button"
         aria-label="Dislike"
         aria-pressed={vote === "down"}
-        className={cn("hover:text-[#1b1b1b]", vote === "down" && "text-[#1b1b1b]")}
+        className={cn("hover:text-foreground", vote === "down" && "text-foreground")}
         onClick={() => setVote((current) => (current === "down" ? null : "down"))}
       >
         <ThumbsDown className="size-3.5" />
@@ -678,7 +682,7 @@ function iconTone(name: string): string {
   if (name === "web_search") return "text-[#2563eb]";
   if (name === "load_skill" || name === "read_skill_asset") return "text-[#ca8a04]";
   if (name === "crop_image" || name === "gpt_image_2" || name === "merge_videos") return "text-[#7c3aed]";
-  return "text-[#404040]";
+  return "text-muted-foreground";
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {

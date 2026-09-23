@@ -3,10 +3,10 @@ export default function HelpPage() {
     <div className="h-full overflow-y-auto">
       <div className="w-full px-6 pb-16 pt-5">
         <h1 className="text-[32px] font-semibold tracking-[-0.03em]">Help & Support</h1>
-        <p className="mt-2 text-[14px] font-medium leading-6 text-[#8a8a8a]">
+        <p className="mt-2 text-[14px] font-medium leading-6 text-muted-foreground">
           Every failed turn should be explainable from the chat: status, a safe error, tool outcomes, partial output, and a retry path.
         </p>
-        <dl className="mt-8 space-y-6 text-[14px] font-medium leading-6 text-[#1b1b1b]">
+        <dl className="mt-8 space-y-6 text-[14px] font-medium leading-6 text-foreground">
           <Item title="One run at a time">
             Each chat has one active turn. If send is blocked, stop the current run or wait for it to finish.
           </Item>
@@ -35,7 +35,7 @@ function Item({ title, children }: { title: string; children: string }) {
   return (
     <div>
       <dt className="font-semibold">{title}</dt>
-      <dd className="mt-1 text-[#404040]">{children}</dd>
+      <dd className="mt-1 text-muted-foreground">{children}</dd>
     </div>
   );
 }

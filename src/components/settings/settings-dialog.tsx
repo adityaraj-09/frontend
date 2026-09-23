@@ -20,8 +20,8 @@ import {
   Sparkles,
   Trash2,
   UserRound,
+  Video,
   X,
-  Youtube,
 } from "lucide-react";
 import { useClerk, useUser } from "@/lib/clerk";
 import { useMeQuery } from "@/hooks/use-queries";
@@ -403,7 +403,7 @@ function ResourcesPanel() {
         action={
           <span className="inline-flex items-center gap-1.5">
             Watch
-            <Youtube className="size-3.5" />
+            <Video className="size-3.5" />
           </span>
         }
         href="https://www.youtube.com/results?search_query=magica+ai"

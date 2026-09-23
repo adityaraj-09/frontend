@@ -64,16 +64,16 @@ export function TopBar() {
         <div className="flex items-center gap-3">
           <Link
             href="https://magica.com/docs/introduction/overview"
-            className="inline-flex h-7 items-center rounded-full bg-[#f1f1f1] px-3 text-[14px] font-semibold leading-5 text-[#1b1b1b]"
+            className="inline-flex h-7 items-center rounded-full bg-muted px-3 text-[14px] font-semibold leading-5 text-foreground"
           >
             Magica 101
           </Link>
-          <Link href="/sign-in" className="inline-flex h-8 items-center rounded-full px-3 text-[14px] font-semibold leading-5 text-[#1b1b1b] hover:bg-[#f1f1f1]">
+          <Link href="/sign-in" className="inline-flex h-8 items-center rounded-full px-3 text-[14px] font-semibold leading-5 text-foreground hover:bg-muted">
             Sign in
           </Link>
           <Link
             href="/sign-up"
-            className="inline-flex h-8 items-center rounded-full bg-[#1b1b1b] px-3.5 text-[14px] font-semibold leading-5 text-white"
+            className="inline-flex h-8 items-center rounded-full bg-foreground px-3.5 text-[14px] font-semibold leading-5 text-white"
           >
             Sign up
           </Link>

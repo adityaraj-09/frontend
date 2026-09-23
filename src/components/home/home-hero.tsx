@@ -26,13 +26,13 @@ export function HomeHero() {
           <MagicaRobot size={40} />
           <p
             aria-label="Local time"
-            className="mt-[19px] flex items-baseline justify-center gap-1.5 text-[13px] font-semibold leading-[19.5px] tracking-[0.01em] text-[#404040]"
+            className="mt-[19px] flex items-baseline justify-center gap-1.5 text-[13px] font-semibold leading-[19.5px] tracking-[0.01em] text-muted-foreground"
           >
             <span>{time}</span>
             <span className="-translate-x-[3px] -translate-y-[5px] text-[10px] font-semibold leading-3">{period}</span>
           </p>
-          <h1 className="mt-1 text-[24px] font-bold leading-8 text-[#1b1b1b]">Your AI worker</h1>
-          <p className="mt-2 text-[14px] font-semibold leading-6 text-[#404040]">Work at the speed of thought.</p>
+          <h1 className="mt-1 text-[24px] font-bold leading-8 text-foreground">Your AI worker</h1>
+          <p className="mt-2 text-[14px] font-semibold leading-6 text-muted-foreground">Work at the speed of thought.</p>
           <div className="mt-12 w-full">
             <Composer />
           </div>
@@ -48,8 +48,8 @@ export function HomeHero() {
               role="tab"
               aria-selected={tab === item}
               className={cn(
-                "h-[34px] shrink-0 rounded-[10px] px-2.5 text-[14px] font-semibold leading-5 text-[#404040]",
-                tab === item && "bg-[#f1f1f1] text-[#181818]",
+                "h-[34px] shrink-0 rounded-[10px] px-2.5 text-[14px] font-semibold leading-5 text-muted-foreground",
+                tab === item && "bg-muted text-foreground",
               )}
               onClick={() => setTab(item)}
             >
@@ -65,7 +65,7 @@ export function HomeHero() {
                 key={idea.title}
                 type="button"
                 aria-label={idea.title}
-                className="group relative h-[300px] overflow-hidden rounded-[16px] border border-[#dedede] bg-[#fafafa] text-left"
+                className="group relative h-[300px] overflow-hidden rounded-[16px] border border-border bg-muted text-left"
                 onClick={() => setText(idea.prompt)}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -80,7 +80,7 @@ export function HomeHero() {
         </div>
       </div>
     </div>
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-white to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-background to-transparent" />
     </div>
   );
 }

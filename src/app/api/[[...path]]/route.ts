@@ -4,6 +4,7 @@ import { upstreamAuthorization } from "@/lib/api/upstream-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const HOP = new Set([
   "connection",

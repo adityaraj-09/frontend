@@ -43,7 +43,7 @@ export function MagicaMark({ className }: { className?: string }) {
 
 export function MagicaWordmark({ className }: { className?: string }) {
   return (
-    <span className={cn("text-[18px] font-semibold leading-5 tracking-[-0.03em] text-[#1b1b1b]", className)}>
+    <span className={cn("text-[18px] font-semibold leading-5 tracking-[-0.03em] text-foreground", className)}>
       Magica
     </span>
   );

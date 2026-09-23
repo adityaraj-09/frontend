@@ -87,14 +87,14 @@ export function LibraryBrowser({
   const groups = useMemo(() => groupByDay(visible), [visible]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-white text-[#1b1b1b]">
+    <div className="flex h-full min-h-0 flex-col bg-background text-foreground">
       <div className="flex shrink-0 items-center justify-between gap-3 px-6 pt-5 pb-3">
         <h1 className="text-[28px] font-semibold tracking-[-0.03em]">Library</h1>
         <div className="flex items-center gap-2">
           <DropdownMenu>
-            <DropdownMenuTrigger className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[#ededed] bg-white px-3 text-[13px] font-medium text-[#1b1b1b]">
+            <DropdownMenuTrigger className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-background px-3 text-[13px] font-medium text-foreground">
               Sort
-              <ArrowUpDown className="size-3.5 text-[#404040]" />
+              <ArrowUpDown className="size-3.5 text-muted-foreground" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => setSort("newest")}>Newest</DropdownMenuItem>
@@ -103,9 +103,9 @@ export function LibraryBrowser({
             </DropdownMenuContent>
           </DropdownMenu>
           <DropdownMenu>
-            <DropdownMenuTrigger className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[#ededed] bg-white px-3 text-[13px] font-medium text-[#1b1b1b]">
+            <DropdownMenuTrigger className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-background px-3 text-[13px] font-medium text-foreground">
               Filter
-              <SlidersHorizontal className="size-3.5 text-[#404040]" />
+              <SlidersHorizontal className="size-3.5 text-muted-foreground" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => setKind("all")}>All types</DropdownMenuItem>
@@ -117,14 +117,14 @@ export function LibraryBrowser({
           <button
             type="button"
             aria-label={density === "grid" ? "List view" : "Grid view"}
-            className="flex size-8 items-center justify-center rounded-full border border-[#ededed] text-[#404040]"
+            className="flex size-8 items-center justify-center rounded-full border border-border text-muted-foreground"
             onClick={() => setDensity((value) => (value === "grid" ? "list" : "grid"))}
           >
             {density === "grid" ? <LayoutGrid className="size-3.5" /> : <List className="size-3.5" />}
           </button>
           <button
             type="button"
-            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#1b1b1b] px-3.5 text-[13px] font-semibold text-white"
+            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-foreground px-3.5 text-[13px] font-semibold text-white"
             onClick={() => fileRef.current?.click()}
           >
             Upload media
@@ -146,23 +146,23 @@ export function LibraryBrowser({
       </div>
 
       <div className="px-6">
-        <label className="flex h-10 items-center gap-2 rounded-full bg-[#f7f7f7] px-3.5">
-          <Search className="size-4 text-[#8a8a8a]" />
+        <label className="flex h-10 items-center gap-2 rounded-full bg-muted px-3.5">
+          <Search className="size-4 text-muted-foreground" />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search media..."
-            className="h-full w-full bg-transparent text-[14px] font-medium text-[#1b1b1b] outline-none placeholder:text-[#8a8a8a]"
+            className="h-full w-full bg-transparent text-[14px] font-medium text-foreground outline-none placeholder:text-muted-foreground"
           />
         </label>
-        <p className="mt-3 text-[13px] font-medium text-[#404040]">
+        <p className="mt-3 text-[13px] font-medium text-muted-foreground">
           {visible.length} {visible.length === 1 ? "file" : "files"}
         </p>
       </div>
 
       <div className="mt-2 flex min-h-0 flex-1">
         <div className="min-w-0 flex-1 overflow-y-auto px-6 pb-8">
-          <div className="flex flex-wrap items-center gap-5 border-b border-[#ededed] pb-2 text-[13px] font-medium text-[#8a8a8a]">
+          <div className="flex flex-wrap items-center gap-5 border-b border-border pb-2 text-[13px] font-medium text-muted-foreground">
             <TabButton active={tab === "all"} onClick={() => setTab("all")} icon={<LayoutGrid className="size-3.5" />}>
               All
             </TabButton>
@@ -184,7 +184,7 @@ export function LibraryBrowser({
           ) : null}
 
           {!visible.length && !library.isError && !library.isLoading && !library.isFetching ? (
-            <p className="mt-10 text-[13px] font-medium text-[#404040]">
+            <p className="mt-10 text-[13px] font-medium text-muted-foreground">
               {tab === "favorites"
                 ? "No favorites yet."
                 : "Nothing in the library yet. Upload media to see it here."}
@@ -194,8 +194,8 @@ export function LibraryBrowser({
           {groups.map((group) => (
             <section key={group.label} className="mt-6">
               <div className="mb-3">
-                <h2 className="text-[16px] font-semibold text-[#1b1b1b]">{group.label}</h2>
-                <p className="text-[12px] font-medium text-[#8a8a8a]">{group.items.length} items</p>
+                <h2 className="text-[16px] font-semibold text-foreground">{group.label}</h2>
+                <p className="text-[12px] font-medium text-muted-foreground">{group.items.length} items</p>
               </div>
               <div
                 className={cn(
@@ -223,12 +223,12 @@ export function LibraryBrowser({
           ))}
         </div>
 
-        <aside className="hidden w-[168px] shrink-0 border-l border-[#f3f3f3] px-4 pt-1 md:block">
-          <button type="button" className="flex w-full items-center gap-2 py-1.5 text-left text-[13px] font-medium text-[#1b1b1b]">
+        <aside className="hidden w-[168px] shrink-0 border-l border-border px-4 pt-1 md:block">
+          <button type="button" className="flex w-full items-center gap-2 py-1.5 text-left text-[13px] font-medium text-foreground">
             <LayoutGrid className="size-3.5" />
             All folders
           </button>
-          <button type="button" className="flex w-full items-center gap-2 py-1.5 text-left text-[13px] font-medium text-[#8a8a8a]">
+          <button type="button" className="flex w-full items-center gap-2 py-1.5 text-left text-[13px] font-medium text-muted-foreground">
             <Folder className="size-3.5" />
             My folders
           </button>
@@ -255,12 +255,12 @@ function TabButton({
       onClick={onClick}
       className={cn(
         "relative flex items-center gap-1.5 py-2",
-        active ? "text-[#1b1b1b]" : "text-[#8a8a8a] hover:text-[#404040]",
+        active ? "text-foreground" : "text-muted-foreground hover:text-muted-foreground",
       )}
     >
       {icon}
       {children}
-      {active ? <span className="absolute inset-x-0 -bottom-2 h-px bg-[#1b1b1b]" /> : null}
+      {active ? <span className="absolute inset-x-0 -bottom-2 h-px bg-foreground" /> : null}
     </button>
   );
 }
@@ -283,14 +283,14 @@ function LibraryTile({
   const src = item.thumbnailUrl || item.url || "";
   const image = Boolean(src) && item.mimeType.startsWith("image/");
   return (
-    <div className={cn(density === "list" && "flex items-center gap-3 rounded-xl px-1 py-1 hover:bg-[#fafafa]")}>
+    <div className={cn(density === "list" && "flex items-center gap-3 rounded-xl px-1 py-1 hover:bg-muted")}>
       <button
         type="button"
         onClick={onOpen}
         className={cn(
           "group relative overflow-hidden bg-[#111] text-left",
           density === "grid" ? "w-full rounded-xl" : "size-14 shrink-0 rounded-lg",
-          selectable && "ring-offset-2 hover:ring-2 hover:ring-[#1b1b1b]",
+          selectable && "ring-offset-2 hover:ring-2 hover:ring-foreground",
         )}
       >
         {image ? (
@@ -303,7 +303,7 @@ function LibraryTile({
         ) : (
           <div
             className={cn(
-              "flex items-center justify-center bg-[#f3f3f5] text-[11px] font-medium text-[#404040]",
+              "flex items-center justify-center bg-muted text-[11px] font-medium text-muted-foreground",
               density === "grid" ? "aspect-[16/10] w-full px-2" : "size-14",
             )}
           >
@@ -312,15 +312,15 @@ function LibraryTile({
         )}
       </button>
       <div className={cn("flex items-start justify-between gap-2", density === "grid" ? "mt-1.5" : "min-w-0 flex-1")}>
-        <p className="min-w-0 truncate text-[12px] font-medium text-[#404040]">{item.filename}</p>
+        <p className="min-w-0 truncate text-[12px] font-medium text-muted-foreground">{item.filename}</p>
         <button
           type="button"
           aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
           aria-pressed={favorited}
-          className="shrink-0 text-[#8a8a8a] hover:text-[#1b1b1b]"
+          className="shrink-0 text-muted-foreground hover:text-foreground"
           onClick={onFavorite}
         >
-          <Heart className={cn("size-3.5", favorited && "fill-[#1b1b1b] text-[#1b1b1b]")} />
+          <Heart className={cn("size-3.5", favorited && "fill-foreground text-foreground")} />
         </button>
       </div>
     </div>

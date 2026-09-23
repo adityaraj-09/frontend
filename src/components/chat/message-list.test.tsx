@@ -144,6 +144,9 @@ describe("MessageList", () => {
     await userEvent.click(screen.getByRole("button", { name: "Preview out.png" }));
     const dialog = screen.getByRole("dialog", { name: "Image Preview" });
     expect(within(dialog).getByText("a mountain")).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Use as reference" })).toBeInTheDocument();
+    expect(within(dialog).getByText("Prompt")).toBeInTheDocument();
+    expect(within(dialog).getByText("File Name")).toBeInTheDocument();
     expect(within(dialog).queryByText("Here's a mountain landscape:")).not.toBeInTheDocument();
     expect(within(dialog).getByRole("img", { name: "out.png" })).toHaveClass("max-w-full");
     expect(within(dialog).getByRole("img", { name: "out.png" })).not.toHaveClass("max-w-[280px]");
@@ -241,5 +244,34 @@ describe("MessageList", () => {
     expect(screen.getByText("Crop image")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "out.png" })).toBeInTheDocument();
     expect(screen.queryByText("Keep media")).not.toBeInTheDocument();
+  });
+
+  it("shows a live generate-image card only on the current assistant turn", () => {
+    const previous = msg("aaaaaaaa-1111-1111-1111-111111111111", "ASSISTANT", "Hello there.");
+    const current = msg("bbbbbbbb-1111-1111-1111-111111111111", "ASSISTANT", "");
+    current.status = "STREAMING";
+    current.createdAt = "2026-09-21T10:01:00.000Z";
+    current.contentBlocks = [];
+    render(
+      <div style={{ height: 640 }}>
+        <MessageList
+          messages={[
+            msg("cccccccc-1111-1111-1111-111111111111", "USER", "hello"),
+            previous,
+            msg("dddddddd-1111-1111-1111-111111111111", "USER", "generate an image"),
+            current,
+          ]}
+          streamText=""
+          snapshot={{
+            assistantMessageId: current.id,
+            status: "WORKING",
+            currentStep: "tools:1",
+            tools: [{ toolCallId: "call_live", toolName: "gpt_image_2", status: "RUNNING" }],
+          }}
+        />
+      </div>,
+    );
+    expect(screen.getByText("Hello there.")).toBeInTheDocument();
+    expect(screen.getAllByText("Generate image")).toHaveLength(1);
   });
 });

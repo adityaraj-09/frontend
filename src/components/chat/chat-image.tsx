@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { Calendar, Copy, Download, FileText, Hash, Heart, ImagePlus, Maximize2, Pencil, Proportions, Trash2, X } from "lucide-react";
 import { uploadApi } from "@/lib/api/services";
 import { useComposerStore } from "@/stores/composer";
-import { useUiStore } from "@/stores/ui";
+import { useLibraryFavorites } from "@/stores/library";
 import { cn } from "@/lib/utils";
 
 export type ChatImageMeta = {
@@ -33,7 +33,6 @@ export function ChatImage({
   className?: string;
 }) {
   const meta = useContext(ChatImageMetaContext);
-  const setArtifact = useUiStore((s) => s.setArtifact);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   if (!src) return null;
@@ -47,10 +46,7 @@ export function ChatImage({
         <button
           type="button"
           className="block"
-          onClick={() => {
-            if (generated) setArtifact({ title: name, url: src, mimeType: "image/*" });
-            setOpen(true);
-          }}
+          onClick={() => setOpen(true)}
           aria-label={`Preview ${name}`}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -73,6 +69,7 @@ export function ChatImage({
               prompt={resolvedPrompt}
               createdAt={meta.createdAt}
               source={meta.source ?? "Generated in chat"}
+              attachmentId={attachmentId ?? meta.attachmentId}
               onClose={() => setOpen(false)}
             />,
             document.body,
@@ -98,7 +95,7 @@ function HoverButton({
       type="button"
       aria-label={label}
       disabled={disabled}
-      className="pointer-events-auto flex size-8 items-center justify-center rounded-lg bg-[#1b1b1b]/80 text-white hover:bg-[#1b1b1b]"
+      className="pointer-events-auto flex size-8 items-center justify-center rounded-lg bg-foreground/80 text-white hover:bg-foreground"
       onClick={(event) => {
         event.stopPropagation();
         event.preventDefault();
@@ -116,6 +113,7 @@ function ImagePreviewDialog({
   prompt,
   createdAt,
   source,
+  attachmentId,
   onClose,
 }: {
   src: string;
@@ -123,11 +121,16 @@ function ImagePreviewDialog({
   prompt?: string;
   createdAt?: string;
   source: string;
+  attachmentId?: string;
   onClose: () => void;
 }) {
-  const [favorite, setFavorite] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [localFavorite, setLocalFavorite] = useState(false);
   const [copied, setCopied] = useState<"prompt" | "link" | null>(null);
   const [size, setSize] = useState<string>("");
+  const favoriteIds = useLibraryFavorites((s) => s.ids);
+  const toggleFavorite = useLibraryFavorites((s) => s.toggle);
+  const favorited = attachmentId ? favoriteIds.includes(attachmentId) : localFavorite;
 
   async function copy(value: string, which: "prompt" | "link") {
     try {
@@ -139,36 +142,52 @@ function ImagePreviewDialog({
     }
   }
 
+  async function useAsReference() {
+    const attached = await useInChat(src, name, attachmentId, setBusy);
+    if (attached) onClose();
+  }
+
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/45 p-8" onClick={onClose}>
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/35 p-6 md:p-10" onClick={onClose}>
       <div
         role="dialog"
+        aria-modal="true"
         aria-label="Image Preview"
-        className="flex h-[min(680px,88vh)] w-[min(1040px,100%)] overflow-hidden rounded-[28px] bg-white shadow-2xl"
+        className="flex h-[min(800px,92vh)] w-[min(1180px,96vw)] overflow-hidden rounded-[28px] bg-background shadow-[0_24px_80px_rgba(0,0,0,0.18)]"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="relative flex min-w-0 flex-1 flex-col px-8 pt-7 pb-8">
-          <div className="text-[16px] font-bold text-[#1b1b1b]">Image Preview</div>
-          <div className="absolute top-6 right-6 flex gap-2">
-            <a
-              href={src}
-              target="_blank"
-              rel="noreferrer"
-              aria-label="Expand image"
-              className="flex size-9 items-center justify-center rounded-xl border border-[#e6e6e6] text-[#1b1b1b] hover:bg-[#fafafa]"
-            >
-              <Maximize2 className="size-3.5" />
-            </a>
-            <button
-              type="button"
-              aria-label="Close preview"
-              className="flex size-9 items-center justify-center rounded-xl border border-[#e6e6e6] text-[#1b1b1b] hover:bg-[#fafafa]"
-              onClick={onClose}
-            >
-              <X className="size-3.5" />
-            </button>
+        <div className="flex min-w-0 flex-1 flex-col px-8 pt-7 pb-8">
+          <div className="flex items-center justify-between gap-4">
+            <div className="text-[16px] font-semibold tracking-[-0.02em] text-foreground">Image Preview</div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void useAsReference()}
+                className="h-8 rounded-full bg-foreground px-3.5 text-[12px] font-semibold text-background disabled:opacity-60"
+              >
+                Use as reference
+              </button>
+              <a
+                href={src}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Expand image"
+                className="flex size-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-muted"
+              >
+                <Maximize2 className="size-3.5" />
+              </a>
+              <button
+                type="button"
+                aria-label="Close preview"
+                className="flex size-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-muted"
+                onClick={onClose}
+              >
+                <X className="size-3.5" />
+              </button>
+            </div>
           </div>
-          <div className="mt-6 flex min-h-0 flex-1 items-center justify-center">
+          <div className="mt-4 flex min-h-0 flex-1 items-center justify-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={src}
@@ -181,25 +200,36 @@ function ImagePreviewDialog({
             />
           </div>
         </div>
-        <div className="flex w-[340px] shrink-0 flex-col px-6 pt-8 pb-6">
+        <div className="flex w-[320px] shrink-0 flex-col px-6 pt-8 pb-6">
           <FieldLabel icon={<FileText className="size-3.5" />} label="Prompt">
-            <button type="button" className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#404040] hover:text-[#1b1b1b]" onClick={() => void copy(prompt || "", "prompt")}>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 text-[13px] font-medium text-muted-foreground hover:text-foreground"
+              onClick={() => void copy(prompt || "", "prompt")}
+            >
               {copied === "prompt" ? "Copied" : "Copy"}
               <Copy className="size-3.5" />
             </button>
           </FieldLabel>
-          <div className="mt-2 rounded-2xl bg-[#f3f3f5] px-4 py-3 text-[14px] font-semibold text-[#1b1b1b]">{prompt || "AI generated media"}</div>
-          <FieldLabel icon={<FileText className="size-3.5" />} label="File Name" className="mt-5">
-            <Pencil className="size-3.5 text-[#404040]" />
+          <div className="mt-2 rounded-2xl bg-muted px-4 py-3 text-[14px] font-semibold text-foreground">
+            {prompt || "AI generated media"}
+          </div>
+          <FieldLabel icon={<FileText className="size-3.5" />} label="File Name" className="mt-6">
+            <Pencil className="size-3.5 text-muted-foreground" />
           </FieldLabel>
-          <div className="mt-2 rounded-2xl bg-[#f3f3f5] px-4 py-3 text-[14px] font-semibold text-[#1b1b1b]">{name}</div>
+          <div className="mt-2 rounded-2xl bg-muted px-4 py-3 text-[14px] font-semibold text-foreground">{name}</div>
           <MetaRow icon={<Calendar className="size-3.5" />} label="Created on" value={formatCreated(createdAt)} />
           <MetaRow icon={<Hash className="size-3.5" />} label="Source" value={source} />
           <MetaRow icon={<Proportions className="size-3.5" />} label="Dimensions" value={size || "—"} />
-          <div className="mt-auto grid grid-cols-2 gap-3 pt-8">
-            <ActionButton onClick={() => setFavorite((value) => !value)}>
-              <Heart className={cn("size-3.5", favorite && "fill-[#1b1b1b]")} />
-              {favorite ? "Favorited" : "Add to Favorite"}
+          <div className="mt-auto grid grid-cols-2 gap-2.5 pt-10">
+            <ActionButton
+              onClick={() => {
+                if (attachmentId) toggleFavorite(attachmentId);
+                else setLocalFavorite((value) => !value);
+              }}
+            >
+              <Heart className={cn("size-3.5", favorited && "fill-foreground")} />
+              {favorited ? "Favorited" : "Add to Favorite"}
             </ActionButton>
             <ActionButton onClick={() => void copy(src, "link")}>
               <Copy className="size-3.5" />
@@ -232,9 +262,9 @@ function FieldLabel({
   className?: string;
 }) {
   return (
-    <div className={cn("flex items-center justify-between text-[13px] font-semibold text-[#1b1b1b]", className)}>
+    <div className={cn("flex items-center justify-between text-[13px] font-semibold text-foreground", className)}>
       <span className="inline-flex items-center gap-2">
-        <span className="text-[#404040]">{icon}</span>
+        <span className="text-muted-foreground">{icon}</span>
         {label}
       </span>
       {children}
@@ -245,11 +275,11 @@ function FieldLabel({
 function MetaRow({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
     <div className="mt-5 flex items-center justify-between gap-3 text-[13px] font-semibold">
-      <span className="inline-flex items-center gap-2 text-[#1b1b1b]">
-        <span className="text-[#404040]">{icon}</span>
+      <span className="inline-flex items-center gap-2 text-foreground">
+        <span className="text-muted-foreground">{icon}</span>
         {label}
       </span>
-      <span className="text-right font-semibold text-[#1b1b1b]">{value}</span>
+      <span className="text-right font-semibold text-foreground">{value}</span>
     </div>
   );
 }
@@ -268,7 +298,7 @@ function ActionButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex h-11 items-center justify-center gap-1.5 rounded-full border border-[#e6e6e6] bg-white px-3 text-[13px] font-semibold text-[#1b1b1b] hover:bg-[#fafafa]",
+        "flex h-11 items-center justify-center gap-1.5 rounded-full border border-border bg-background px-3 text-[13px] font-semibold text-foreground hover:bg-muted",
         tone === "danger" && "text-[#e11d48]",
       )}
     >
@@ -296,8 +326,10 @@ async function useInChat(
       status: "complete",
       attachmentId: id,
     });
+    return true;
   } catch (error) {
     store.setError(error instanceof Error ? error.message : "Could not add that image to the composer.");
+    return false;
   } finally {
     setBusy(false);
   }

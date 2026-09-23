@@ -18,9 +18,9 @@ const components: Components = {
     </a>
   ),
   pre: ({ children }) => (
-    <pre className="mb-3 overflow-x-auto rounded-xl bg-[#f3f3f5] p-3 text-[13px] leading-5 last:mb-0">{children}</pre>
+    <pre className="mb-3 overflow-x-auto rounded-xl bg-muted p-3 text-[13px] leading-5 last:mb-0">{children}</pre>
   ),
-  code: ({ children }) => <code className="rounded bg-[#f3f3f5] px-1 text-[13px]">{children}</code>,
+  code: ({ children }) => <code className="rounded bg-muted px-1 text-[13px]">{children}</code>,
   img: ({ src, alt }) => (
     <ChatImage
       src={typeof src === "string" ? src : undefined}
@@ -40,7 +40,7 @@ export function MarkdownText({
   const cleaned = skipImages?.size ? stripKnownMarkdownImages(text, skipImages) : text;
   if (!cleaned.trim()) return null;
   return (
-    <div className="text-[14px] font-medium leading-6 text-[#1b1b1b]">
+    <div className="text-[14px] font-medium leading-6 text-foreground">
       <ReactMarkdown
         components={{
           ...components,

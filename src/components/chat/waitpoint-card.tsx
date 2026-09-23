@@ -34,9 +34,9 @@ export function WaitpointCard({
   }
 
   return (
-    <div className="rounded-2xl border border-[#ededed] bg-[#fafafa] p-4">
-      <p className="text-[12px] font-semibold uppercase tracking-wide text-[#404040]">{copy.kicker}</p>
-      <p className="mt-1 text-[14px] font-medium text-[#1b1b1b]">{copy.body}</p>
+    <div className="rounded-2xl border border-border bg-muted p-4">
+      <p className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">{copy.kicker}</p>
+      <p className="mt-1 text-[14px] font-medium text-foreground">{copy.body}</p>
       {waitpoint.type === "OPTIONS" && optionLabels(waitpoint.payload).length ? (
         <div className="mt-3 flex flex-wrap gap-2">
           {optionLabels(waitpoint.payload).map((option) => (

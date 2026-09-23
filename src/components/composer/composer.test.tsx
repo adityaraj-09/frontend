@@ -93,6 +93,15 @@ describe("Composer", () => {
     expect(send).toBeEnabled();
   });
 
+  it("renders the home task composer as a compact Magica pill", () => {
+    const { container } = render(wrap(<Composer />));
+    expect(screen.getByPlaceholderText("Assign a task or ask anything...")).toBeInTheDocument();
+    const pill = container.querySelector(".rounded-\\[28px\\]");
+    expect(pill).toBeTruthy();
+    expect(pill).toHaveClass("bg-muted");
+    expect(pill).not.toHaveClass("border");
+  });
+
   it("shows upload progress and blocks send until the file finishes", async () => {
     useComposerStore.setState({
       text: "Crop this photo",

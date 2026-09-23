@@ -55,6 +55,8 @@ export const projectSchema = z.object({
   icon: z.string().optional(),
   memoryEnabled: z.boolean().optional(),
   instructions: z.string().optional(),
+  memory: z.string().optional(),
+  memoryUsedPercent: z.number().optional(),
   taskCount: z.number(),
   createdAt: z.string(),
   updatedAt: z.string(),

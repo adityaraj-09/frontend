@@ -27,17 +27,17 @@ export function ApiConsole() {
   return (
     <div className="h-full overflow-y-auto">
       <div className="w-full px-6 pb-16 pt-5">
-        <h1 className="text-[30px] font-bold leading-9 text-[#1b1b1b]">API / MCP</h1>
-        <p className="mt-2 max-w-[640px] text-[14px] font-semibold leading-6 text-[#404040]">
-          Public routes accept an API key. Create one here, then call <code className="text-[#1b1b1b]">/api/v1</code> with{" "}
-          <code className="text-[#1b1b1b]">Authorization: Bearer gxk_live_…</code>
+        <h1 className="text-[30px] font-bold leading-9 text-foreground">API / MCP</h1>
+        <p className="mt-2 max-w-[640px] text-[14px] font-semibold leading-6 text-muted-foreground">
+          Public routes accept an API key. Create one here, then call <code className="text-foreground">/api/v1</code> with{" "}
+          <code className="text-foreground">Authorization: Bearer gxk_live_…</code>
         </p>
 
         <SignedOut>
-          <p className="mt-6 text-[14px] font-medium leading-6 text-[#404040]">Sign in to create keys and webhook endpoints.</p>
+          <p className="mt-6 text-[14px] font-medium leading-6 text-muted-foreground">Sign in to create keys and webhook endpoints.</p>
           <Link
             href="/sign-in"
-            className="mt-4 inline-flex h-8 items-center rounded-full bg-[#1b1b1b] px-3 text-[14px] font-semibold text-white"
+            className="mt-4 inline-flex h-8 items-center rounded-full bg-foreground px-3 text-[14px] font-semibold text-white"
           >
             Sign in
           </Link>
@@ -51,22 +51,22 @@ export function ApiConsole() {
         </SignedIn>
 
         <section className="mt-10">
-          <h2 className="text-[16px] font-semibold leading-6 text-[#1b1b1b]">Public routes</h2>
-          <p className="mt-1 text-[13px] font-medium leading-5 text-[#404040]">
+          <h2 className="text-[16px] font-semibold leading-6 text-foreground">Public routes</h2>
+          <p className="mt-1 text-[13px] font-medium leading-5 text-muted-foreground">
             These stay on the API key. The signed-in app does not send your session to them.
           </p>
-          <ul className="mt-4 divide-y divide-[#ededed] border-y border-[#ededed]">
+          <ul className="mt-4 divide-y divide-border border-y border-border">
             {PUBLIC_ROUTES.map((route) => (
               <li key={`${route.method} ${route.path}`} className="flex gap-4 py-3">
-                <span className="w-16 shrink-0 text-[12px] font-semibold leading-5 text-[#404040]">{route.method}</span>
+                <span className="w-16 shrink-0 text-[12px] font-semibold leading-5 text-muted-foreground">{route.method}</span>
                 <div className="min-w-0">
-                  <code className="block truncate text-[13px] font-medium leading-5 text-[#1b1b1b]">{route.path}</code>
-                  <p className="text-[13px] font-medium leading-5 text-[#404040]">{route.detail}</p>
+                  <code className="block truncate text-[13px] font-medium leading-5 text-foreground">{route.path}</code>
+                  <p className="text-[13px] font-medium leading-5 text-muted-foreground">{route.detail}</p>
                 </div>
               </li>
             ))}
           </ul>
-          <pre className="mt-4 overflow-x-auto rounded-[16px] bg-[#f7f7f7] p-4 text-[13px] leading-5 text-[#1b1b1b]">{`curl -X POST /api/v1/completions \\
+          <pre className="mt-4 overflow-x-auto rounded-[16px] bg-muted p-4 text-[13px] leading-5 text-foreground">{`curl -X POST /api/v1/completions \\
   -H "Authorization: Bearer gxk_live_…" \\
   -H "Content-Type: application/json" \\
   -d '{"text":"Crop this photo"}'`}</pre>
@@ -99,8 +99,8 @@ function WebhooksSection() {
 
   return (
     <section className="mt-10">
-      <h2 className="text-[16px] font-semibold leading-6 text-[#1b1b1b]">Webhook endpoints</h2>
-      <p className="mt-1 text-[13px] font-medium leading-5 text-[#404040]">
+      <h2 className="text-[16px] font-semibold leading-6 text-foreground">Webhook endpoints</h2>
+      <p className="mt-1 text-[13px] font-medium leading-5 text-muted-foreground">
         Deliveries include <code>x-galaxy-signature</code> and <code>x-galaxy-timestamp</code>. The signing secret is shown once.
       </p>
       <form
@@ -117,12 +117,12 @@ function WebhooksSection() {
             onChange={(event) => setUrl(event.target.value)}
             placeholder="https://example.com/hooks/galaxy"
             aria-label="Webhook URL"
-            className="h-10 min-w-[220px] flex-1 rounded-[10px] bg-[#f7f7f7] px-3 text-[14px] font-medium leading-5 text-[#1b1b1b] outline-none placeholder:text-[#585858]"
+            className="h-10 min-w-[220px] flex-1 rounded-[10px] bg-muted px-3 text-[14px] font-medium leading-5 text-foreground outline-none placeholder:text-muted-foreground"
           />
           <button
             type="submit"
             disabled={!url.trim() || events.length === 0 || create.isPending}
-            className="inline-flex h-8 items-center rounded-full bg-[#1b1b1b] px-3 text-[14px] font-semibold text-white disabled:opacity-40"
+            className="inline-flex h-8 items-center rounded-full bg-foreground px-3 text-[14px] font-semibold text-white disabled:opacity-40"
           >
             Add endpoint
           </button>
@@ -133,7 +133,7 @@ function WebhooksSection() {
             return (
               <label
                 key={eventName}
-                className="inline-flex h-8 items-center gap-2 rounded-full border border-[#ededed] bg-white px-3 text-[13px] font-medium text-[#1b1b1b]"
+                className="inline-flex h-8 items-center gap-2 rounded-full border border-border bg-background px-3 text-[13px] font-medium text-foreground"
               >
                 <input
                   type="checkbox"
@@ -172,13 +172,13 @@ function WebhooksSection() {
 function SecretBanner({ label, value, onDismiss }: { label: string; value: string; onDismiss: () => void }) {
   const [copied, setCopied] = useState(false);
   return (
-    <div className="mt-3 rounded-[16px] border border-[#ededed] bg-[#fafafa] p-4">
-      <p className="text-[13px] font-semibold leading-5 text-[#1b1b1b]">{label} — copy it now. It will not be shown again.</p>
-      <code className="mt-2 block break-all text-[13px] leading-5 text-[#1b1b1b]">{value}</code>
+    <div className="mt-3 rounded-[16px] border border-border bg-muted p-4">
+      <p className="text-[13px] font-semibold leading-5 text-foreground">{label} — copy it now. It will not be shown again.</p>
+      <code className="mt-2 block break-all text-[13px] leading-5 text-foreground">{value}</code>
       <div className="mt-3 flex gap-2">
         <button
           type="button"
-          className="inline-flex h-8 items-center rounded-full bg-[#1b1b1b] px-3 text-[13px] font-semibold text-white"
+          className="inline-flex h-8 items-center rounded-full bg-foreground px-3 text-[13px] font-semibold text-white"
           onClick={() => {
             void navigator.clipboard.writeText(value).then(() => {
               setCopied(true);
@@ -189,7 +189,7 @@ function SecretBanner({ label, value, onDismiss }: { label: string; value: strin
         </button>
         <button
           type="button"
-          className="inline-flex h-8 items-center rounded-full border border-[#ededed] bg-white px-3 text-[13px] font-semibold text-[#1b1b1b]"
+          className="inline-flex h-8 items-center rounded-full border border-border bg-background px-3 text-[13px] font-semibold text-foreground"
           onClick={onDismiss}
         >
           Dismiss
@@ -208,20 +208,20 @@ function ItemList({
   empty: string;
   loading: boolean;
 }) {
-  if (loading) return <p className="mt-4 text-[13px] font-medium text-[#404040]">Loading…</p>;
-  if (!items.length) return <p className="mt-4 text-[13px] font-medium text-[#404040]">{empty}</p>;
+  if (loading) return <p className="mt-4 text-[13px] font-medium text-muted-foreground">Loading…</p>;
+  if (!items.length) return <p className="mt-4 text-[13px] font-medium text-muted-foreground">{empty}</p>;
   return (
-    <ul className="mt-4 divide-y divide-[#ededed] border-y border-[#ededed]">
+    <ul className="mt-4 divide-y divide-border border-y border-border">
       {items.map((item) => (
         <li key={item.id} className="flex items-center gap-3 py-3">
           <div className="min-w-0 flex-1">
-            <div className="truncate text-[14px] font-medium leading-5 text-[#1b1b1b]">{item.title}</div>
-            <div className="truncate text-[13px] font-medium leading-5 text-[#404040]">{item.meta}</div>
+            <div className="truncate text-[14px] font-medium leading-5 text-foreground">{item.title}</div>
+            <div className="truncate text-[13px] font-medium leading-5 text-muted-foreground">{item.meta}</div>
           </div>
           <button
             type="button"
             disabled={item.pending}
-            className="inline-flex h-8 shrink-0 items-center rounded-full border border-[#ededed] bg-white px-3 text-[13px] font-semibold text-[#1b1b1b]"
+            className="inline-flex h-8 shrink-0 items-center rounded-full border border-border bg-background px-3 text-[13px] font-semibold text-foreground"
             onClick={item.onAction}
           >
             {item.action}

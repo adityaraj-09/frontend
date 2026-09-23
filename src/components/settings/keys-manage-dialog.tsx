@@ -117,7 +117,7 @@ export function KeysManageDialog({
                   <button
                     type="button"
                     disabled={revoke.isPending}
-                    className="inline-flex h-8 items-center gap-1.5 rounded-full text-[13px] font-semibold text-[#e11d48] hover:bg-red-50"
+                    className="inline-flex h-8 items-center gap-1.5 rounded-full text-[13px] font-semibold text-[#e11d48] hover:bg-destructive/10"
                     onClick={() => revoke.mutate(key.id)}
                   >
                     <Trash2 className="size-3.5" />

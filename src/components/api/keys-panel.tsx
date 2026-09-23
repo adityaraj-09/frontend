@@ -29,8 +29,8 @@ export function KeysPanel() {
 
   return (
     <section>
-      <h2 className="text-[16px] font-semibold leading-6 text-[#1b1b1b]">API keys</h2>
-      <p className="mt-1 text-[13px] font-medium text-[#8a8a8a]">
+      <h2 className="text-[16px] font-semibold leading-6 text-foreground">API keys</h2>
+      <p className="mt-1 text-[13px] font-medium text-muted-foreground">
         Create a key for public REST and MCP. Copy it once — it is not shown again.
       </p>
       <form
@@ -47,12 +47,12 @@ export function KeysPanel() {
           onChange={(event) => setName(event.target.value)}
           placeholder="Key name"
           aria-label="Key name"
-          className="h-10 min-w-[220px] flex-1 rounded-[10px] bg-[#f7f7f7] px-3 text-[14px] font-medium leading-5 text-[#1b1b1b] outline-none placeholder:text-[#585858]"
+          className="h-10 min-w-[220px] flex-1 rounded-[10px] bg-muted px-3 text-[14px] font-medium leading-5 text-foreground outline-none placeholder:text-muted-foreground"
         />
         <button
           type="submit"
           disabled={!name.trim() || create.isPending}
-          className="inline-flex h-8 items-center rounded-full bg-[#1b1b1b] px-3 text-[14px] font-semibold text-white disabled:opacity-40"
+          className="inline-flex h-8 items-center rounded-full bg-foreground px-3 text-[14px] font-semibold text-white disabled:opacity-40"
         >
           Create key
         </button>
@@ -60,23 +60,23 @@ export function KeysPanel() {
       <FormError error={create.error} />
       {revealed ? <SecretBanner value={revealed} onDismiss={() => setRevealed(null)} /> : null}
       {keys.isLoading ? (
-        <p className="mt-4 text-[13px] font-medium text-[#404040]">Loading…</p>
+        <p className="mt-4 text-[13px] font-medium text-muted-foreground">Loading…</p>
       ) : !(keys.data?.items ?? []).length ? (
-        <p className="mt-4 text-[13px] font-medium text-[#404040]">No API keys yet.</p>
+        <p className="mt-4 text-[13px] font-medium text-muted-foreground">No API keys yet.</p>
       ) : (
-        <ul className="mt-4 divide-y divide-[#ededed] border-y border-[#ededed]">
+        <ul className="mt-4 divide-y divide-border border-y border-border">
           {(keys.data?.items ?? []).map((key) => (
             <li key={key.id} className="flex items-center gap-3 py-3">
               <div className="min-w-0 flex-1">
                 <div className="truncate text-[14px] font-medium">{key.name}</div>
-                <div className="truncate text-[13px] text-[#404040]">
+                <div className="truncate text-[13px] text-muted-foreground">
                   {key.prefix}… · {key.lastUsedAt ? `used ${formatAgo(key.lastUsedAt)}` : "never used"}
                 </div>
               </div>
               <button
                 type="button"
                 disabled={revoke.isPending}
-                className="inline-flex h-8 items-center rounded-full border border-[#ededed] px-3 text-[13px] font-semibold"
+                className="inline-flex h-8 items-center rounded-full border border-border px-3 text-[13px] font-semibold"
                 onClick={() => revoke.mutate(key.id)}
               >
                 Revoke
@@ -93,20 +93,20 @@ export function KeysPanel() {
 function SecretBanner({ value, onDismiss }: { value: string; onDismiss: () => void }) {
   const [copied, setCopied] = useState(false);
   return (
-    <div className="mt-3 rounded-[16px] border border-[#ededed] bg-[#fafafa] p-4">
+    <div className="mt-3 rounded-[16px] border border-border bg-muted p-4">
       <p className="text-[13px] font-semibold">API key — copy it now. It will not be shown again.</p>
       <code className="mt-2 block break-all text-[13px]">{value}</code>
       <div className="mt-3 flex gap-2">
         <button
           type="button"
-          className="inline-flex h-8 items-center rounded-full bg-[#1b1b1b] px-3 text-[13px] font-semibold text-white"
+          className="inline-flex h-8 items-center rounded-full bg-foreground px-3 text-[13px] font-semibold text-white"
           onClick={() => void navigator.clipboard.writeText(value).then(() => setCopied(true))}
         >
           {copied ? "Copied" : "Copy"}
         </button>
         <button
           type="button"
-          className="inline-flex h-8 items-center rounded-full border border-[#ededed] px-3 text-[13px] font-semibold"
+          className="inline-flex h-8 items-center rounded-full border border-border px-3 text-[13px] font-semibold"
           onClick={onDismiss}
         >
           Dismiss

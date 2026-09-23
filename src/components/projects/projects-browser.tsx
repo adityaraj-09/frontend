@@ -61,13 +61,13 @@ export function ProjectsBrowser() {
   }
 
   return (
-    <div className="h-full min-h-0 overflow-y-auto bg-white text-[#1b1b1b]">
+    <div className="h-full min-h-0 overflow-y-auto bg-background text-foreground">
       <div className="w-full px-6 pt-5 pb-16">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-[30px] font-bold leading-9">Projects</h1>
           <div className="flex items-center gap-2">
             <DropdownMenu>
-              <DropdownMenuTrigger className="inline-flex h-8 items-center gap-1 rounded-full px-3 text-[13px] font-semibold text-[#404040] hover:bg-[#f7f7f7]">
+              <DropdownMenuTrigger className="inline-flex h-8 items-center gap-1 rounded-full px-3 text-[13px] font-semibold text-muted-foreground hover:bg-muted">
                 Sort by {sort === "name" ? "Name" : "Activity"}
                 <ChevronDown className="size-3.5" />
               </DropdownMenuTrigger>
@@ -78,7 +78,7 @@ export function ProjectsBrowser() {
             </DropdownMenu>
             <button
               type="button"
-              className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#1b1b1b] px-3 text-[13px] font-semibold text-white"
+              className="inline-flex h-8 items-center gap-1.5 rounded-full bg-foreground px-3 text-[13px] font-semibold text-white"
               onClick={() => setCreateOpen(true)}
             >
               <Plus className="size-3.5" />
@@ -87,18 +87,18 @@ export function ProjectsBrowser() {
           </div>
         </div>
 
-        <label className="mt-5 flex h-11 items-center gap-2 rounded-full bg-[#f7f7f7] px-4">
-          <Search className="size-4 text-[#8a8a8a]" />
+        <label className="mt-5 flex h-11 items-center gap-2 rounded-full bg-muted px-4">
+          <Search className="size-4 text-muted-foreground" />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search projects..."
-            className="h-full w-full bg-transparent text-[14px] font-medium outline-none placeholder:text-[#8a8a8a]"
+            className="h-full w-full bg-transparent text-[14px] font-medium outline-none placeholder:text-muted-foreground"
           />
         </label>
 
         <SignedOut>
-          <p className="mt-8 text-[14px] font-medium text-[#404040]">Sign in to create and open projects.</p>
+          <p className="mt-8 text-[14px] font-medium text-muted-foreground">Sign in to create and open projects.</p>
         </SignedOut>
 
         <SignedIn>
@@ -107,14 +107,14 @@ export function ProjectsBrowser() {
               {items.map((project) => {
                 const preset = projectPreset(project.icon);
                 return (
-                  <article key={project.id} className="rounded-[20px] border border-[#ededed] bg-white px-5 py-4">
+                  <article key={project.id} className="rounded-[20px] border border-border bg-background px-5 py-4">
                     <div className="flex items-start justify-between gap-3">
                       <Link href={`/projects/${project.id}`} className="min-w-0">
                         <div className="flex items-center gap-2">
                           <preset.Icon className={cn("size-4", preset.tone)} />
                           <h2 className="truncate text-[15px] font-semibold">{project.name}</h2>
                         </div>
-                        <p className="mt-1 text-[13px] font-medium text-[#8a8a8a]">
+                        <p className="mt-1 text-[13px] font-medium text-muted-foreground">
                           Updated {formatAgo(project.updatedAt)} / {project.taskCount}{" "}
                           {project.taskCount === 1 ? "task" : "tasks"}
                         </p>
@@ -122,7 +122,7 @@ export function ProjectsBrowser() {
                       <DropdownMenu>
                         <DropdownMenuTrigger
                           aria-label={`${project.name} menu`}
-                          className="flex size-8 items-center justify-center rounded-full text-[#8a8a8a] hover:bg-[#f7f7f7]"
+                          className="flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
                         >
                           <Ellipsis className="size-4" />
                         </DropdownMenuTrigger>
@@ -141,7 +141,7 @@ export function ProjectsBrowser() {
               })}
             </div>
           ) : (
-            <p className="mt-16 text-center text-[13px] font-medium text-[#8a8a8a]">
+            <p className="mt-16 text-center text-[13px] font-medium text-muted-foreground">
               {query ? "No projects match that search." : "No projects yet. Create one to group tasks."}
             </p>
           )}

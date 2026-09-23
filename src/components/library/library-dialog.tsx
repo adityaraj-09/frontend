@@ -17,7 +17,7 @@ export function LibraryDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="flex h-[min(860px,88vh)] w-[min(1120px,94vw)] max-w-none flex-col gap-0 overflow-hidden rounded-[20px] bg-white p-0 sm:max-w-none"
+        className="flex h-[min(860px,88vh)] w-[min(1120px,94vw)] max-w-none flex-col gap-0 overflow-hidden rounded-[20px] bg-background p-0 sm:max-w-none"
       >
         <DialogTitle className="sr-only">Select from library</DialogTitle>
         {open ? (

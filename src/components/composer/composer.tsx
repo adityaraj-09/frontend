@@ -64,12 +64,16 @@ export function Composer({
     await runApi.cancel(chatId, active.runId);
   }
 
+  const home = variant === "home";
+
   return (
-    <div className={cn("w-full", variant === "home" ? "max-w-[900px]" : "max-w-[760px]")}>
+    <div className={cn("w-full", home ? "max-w-[900px]" : "max-w-[760px]")}>
       <div
         className={cn(
-          "relative flex min-h-[132px] w-full flex-col gap-3 overflow-visible rounded-[24px] bg-gradient-to-b from-[#f7f7f7] to-white px-4 pb-3 pt-4",
-          variant === "thread" && "border border-[#ededed]",
+          "relative flex w-full flex-col overflow-visible",
+          home
+            ? "min-h-[132px] rounded-[28px] bg-muted px-5 pb-3 pt-4"
+            : "min-h-[132px] gap-3 rounded-[24px] border border-border bg-gradient-to-b from-muted to-background px-4 pb-3 pt-4",
         )}
       >
         {pendingFiles.length || libraryOnlyIds.length ? (
@@ -80,7 +84,7 @@ export function Composer({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={file.previewUrl} alt={file.name} className="size-14 rounded-xl object-cover" />
                 ) : (
-                  <span className="flex size-14 items-center justify-center rounded-xl bg-white text-[10px] font-semibold text-[#404040] ring-1 ring-[#ededed]">
+                  <span className="flex size-14 items-center justify-center rounded-xl bg-background text-[10px] font-semibold text-muted-foreground ring-1 ring-border">
                     {file.name.split(".").pop()}
                   </span>
                 )}
@@ -101,7 +105,7 @@ export function Composer({
                 <button
                   type="button"
                   aria-label={`Remove ${file.name}`}
-                  className="absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full bg-[#e8e8e8] text-[#1b1b1b]"
+                  className="absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full bg-muted text-foreground"
                   onClick={() => uppy.cancel(file.id)}
                 >
                   <X className="size-2.5" />
@@ -124,9 +128,9 @@ export function Composer({
           ref={textareaRef}
           value={text}
           rows={1}
-          aria-label={variant === "home" ? "Assign a task or ask anything" : "Send a message"}
-          placeholder={variant === "home" ? "Assign a task or ask anything..." : "Send a message..."}
-          className="min-h-6 w-full resize-none bg-transparent text-[14px] font-medium leading-6 tracking-normal text-[#1b1b1b] outline-none placeholder:text-[#585858]"
+          aria-label={home ? "Assign a task or ask anything" : "Send a message"}
+          placeholder={home ? "Assign a task or ask anything..." : "Send a message..."}
+          className="min-h-6 w-full resize-none bg-transparent text-[14px] font-medium leading-6 tracking-normal text-foreground outline-none placeholder:text-muted-foreground"
           onChange={(event) => {
             setText(event.target.value);
             resize();
@@ -138,7 +142,7 @@ export function Composer({
             }
           }}
         />
-        <div className="mt-auto flex items-end justify-between pt-3">
+        <div className="mt-auto flex items-center justify-between pt-3">
           <div className="flex items-center gap-1">
             <IconButton label="Attach files" onClick={() => setAttachOpen((open) => !open)}>
               <Paperclip className="size-4" strokeWidth={1.75} />
@@ -190,7 +194,11 @@ export function Composer({
                 disabled={!canSend}
                 className={cn(
                   "flex size-8 shrink-0 items-center justify-center rounded-full transition-all",
-                  canSend ? "bg-[#1b1b1b] text-white" : "cursor-not-allowed bg-[#fafafa] text-[#404040] opacity-50",
+                  canSend
+                    ? "bg-foreground text-background"
+                    : home
+                      ? "cursor-not-allowed text-muted-foreground"
+                      : "cursor-not-allowed bg-muted text-muted-foreground opacity-50",
                 )}
                 onClick={() => send.mutate()}
               >
@@ -226,7 +234,7 @@ export function Composer({
         }}
       />
       {planMode ? (
-        <p className="mt-2 px-1 text-[12px] font-medium text-[#404040]">Plan mode — the agent will pause for approval before tools.</p>
+        <p className="mt-2 px-1 text-[12px] font-medium text-muted-foreground">Plan mode — the agent will pause for approval before tools.</p>
       ) : null}
       {error ? (
         <p role="alert" className="mt-2 px-1 text-[12px] text-[#b42318]">
@@ -256,14 +264,14 @@ function LibraryChip({
         // eslint-disable-next-line @next/next/no-img-element
         <img src={src} alt={name} className="size-14 rounded-xl object-cover" />
       ) : (
-        <span className="flex size-14 items-center justify-center rounded-xl bg-white text-[10px] font-semibold text-[#404040] ring-1 ring-[#ededed]">
+        <span className="flex size-14 items-center justify-center rounded-xl bg-background text-[10px] font-semibold text-muted-foreground ring-1 ring-border">
           {name.includes(".") ? name.split(".").pop() : name}
         </span>
       )}
       <button
         type="button"
         aria-label={`Remove ${name}`}
-        className="absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full bg-[#e8e8e8] text-[#1b1b1b]"
+        className="absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full bg-muted text-foreground"
         onClick={onRemove}
       >
         <X className="size-2.5" />
@@ -287,8 +295,8 @@ function IconButton({
     <Tooltip>
       <TooltipTrigger
         className={cn(
-          "flex size-8 items-center justify-center rounded-full text-[#404040] hover:bg-[#fafafa] hover:text-[#1b1b1b]",
-          pressed && "bg-[#f1f1f1] text-[#1b1b1b]",
+          "flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground",
+          pressed && "bg-muted text-foreground",
         )}
         aria-label={label}
         aria-pressed={pressed}

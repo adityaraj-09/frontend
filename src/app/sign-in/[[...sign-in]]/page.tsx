@@ -17,9 +17,9 @@ export default function SignInPage() {
           appearance={clerkAppearance}
         />
       ) : (
-        <p className="max-w-sm text-center text-[14px] font-medium leading-6 text-[#404040]">
-          Add <code className="text-[#1b1b1b]">NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY</code> and{" "}
-          <code className="text-[#1b1b1b]">CLERK_SECRET_KEY</code> to <code className="text-[#1b1b1b]">frontend/.env</code>{" "}
+        <p className="max-w-sm text-center text-[14px] font-medium leading-6 text-muted-foreground">
+          Add <code className="text-foreground">NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY</code> and{" "}
+          <code className="text-foreground">CLERK_SECRET_KEY</code> to <code className="text-foreground">frontend/.env</code>{" "}
           to load Clerk sign in.
         </p>
       )}
