@@ -4,10 +4,11 @@ import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Ellipsis, FileText, Lock, Plus, Settings } from "lucide-react";
-import { useProjectQuery } from "@/hooks/use-queries";
+import { useChatsQuery, useProjectQuery } from "@/hooks/use-queries";
 import { projectApi } from "@/lib/api/services";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query/keys";
+import { formatAgo } from "@/lib/format";
 import { projectPreset } from "@/lib/project-presets";
 import { Composer } from "@/components/composer/composer";
 import { CreateProjectDialog } from "@/components/projects/create-project-dialog";
@@ -25,6 +26,8 @@ export default function ProjectDetailPage() {
   const queryClient = useQueryClient();
   const projectId = params.projectId;
   const project = useProjectQuery(projectId);
+  const chats = useChatsQuery(undefined, undefined, projectId);
+  const items = chats.data?.pages.flatMap((page) => page.items) ?? [];
   const [createOpen, setCreateOpen] = useState(false);
   const [instructions, setInstructions] = useState<string | null>(null);
   const row = project.data;
@@ -91,10 +94,39 @@ export default function ProjectDetailPage() {
 
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
           <div>
-            <Composer />
-            <p className="mt-4 rounded-[16px] bg-muted px-4 py-6 text-center text-[13px] font-medium text-muted-foreground">
-              Start a chat to keep conversations organized and re-use project knowledge.
-            </p>
+            <Composer projectId={projectId} />
+            {items.length ? (
+              <ul className="mt-6">
+                {items.map((chat) => (
+                  <li key={chat.id}>
+                    <Link
+                      href={`/chat/${chat.id}`}
+                      className="flex h-12 items-center justify-between gap-3"
+                    >
+                      <span className="min-w-0 truncate text-[13px] font-semibold leading-5">
+                        {chat.title || "New task"}
+                      </span>
+                      <span className="shrink-0 text-[13px] font-medium text-muted-foreground">
+                        {formatAgo(chat.lastMessageAt)}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-4 rounded-[16px] bg-muted px-4 py-6 text-center text-[13px] font-medium text-muted-foreground">
+                Start a chat to keep conversations organized and re-use project knowledge.
+              </p>
+            )}
+            {chats.hasNextPage ? (
+              <button
+                type="button"
+                className="mt-2 text-[13px] font-semibold text-muted-foreground"
+                onClick={() => void chats.fetchNextPage()}
+              >
+                Load more
+              </button>
+            ) : null}
           </div>
           <aside className="flex flex-col gap-3">
             <RailCard

@@ -10,14 +10,12 @@ import { queryKeys } from "@/lib/query/keys";
 import { KeysPanel } from "./keys-panel";
 
 const PUBLIC_ROUTES = [
-  { method: "POST", path: "/api/v1/completions", detail: "Start a turn. Send { text } or { prompt, chatId }." },
-  { method: "POST", path: "/api/v1/chats/:chatId/completions", detail: "Start a turn in an existing chat." },
+  { method: "POST", path: "/api/v1/completions", detail: "Start a turn. Send { text }. Omit chatId to create a chat." },
   { method: "GET", path: "/api/v1/chats", detail: "List chats for the key’s user." },
   { method: "POST", path: "/api/v1/chats", detail: "Create a chat." },
   { method: "GET", path: "/api/v1/chats/:chatId", detail: "Read one chat." },
   { method: "DELETE", path: "/api/v1/chats/:chatId", detail: "Delete a chat." },
   { method: "GET", path: "/api/v1/chats/:chatId/messages", detail: "List messages." },
-  { method: "POST", path: "/api/v1/chats/:chatId/messages", detail: "Send a message and queue a run." },
   { method: "GET", path: "/api/v1/chats/:chatId/runs/:runId", detail: "Read run status." },
   { method: "POST", path: "/api/v1/tools/:toolName", detail: "Run crop_image, gpt_image_2, or merge_videos." },
   { method: "POST", path: "/api/mcp", detail: "MCP endpoint. Same API key. Tools mirror the public routes." },

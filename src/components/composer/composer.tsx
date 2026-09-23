@@ -16,9 +16,11 @@ import { LibraryDialog } from "@/components/library/library-dialog";
 
 export function Composer({
   chatId,
+  projectId,
   variant = "home",
 }: {
   chatId?: string;
+  projectId?: string;
   variant?: "home" | "thread";
 }) {
   const text = useComposerStore((s) => s.text);
@@ -30,8 +32,8 @@ export function Composer({
   const pendingFiles = useComposerStore((s) => s.pendingFiles);
   const removeAttachmentId = useComposerStore((s) => s.removeAttachmentId);
   const upsertPendingFile = useComposerStore((s) => s.upsertPendingFile);
-  const send = useSendMessage(chatId);
-  const uppy = useUppyUpload(chatId);
+  const send = useSendMessage(chatId, projectId);
+  const uppy = useUppyUpload(chatId, projectId);
   const library = useLibraryQuery();
   const active = useRunSessionStore((s) => s.active);
   const pending = useRunSessionStore((s) => s.pending);

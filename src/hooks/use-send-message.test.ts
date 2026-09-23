@@ -18,8 +18,13 @@ vi.mock("@/lib/clerk", () => ({
   useClerk: () => ({ openSignIn: vi.fn() }),
 }));
 
+const update = vi.fn();
+
 vi.mock("@/lib/api/services", () => ({
-  chatApi: { create: (...args: unknown[]) => create(...args) },
+  chatApi: {
+    create: (...args: unknown[]) => create(...args),
+    update: (...args: unknown[]) => update(...args),
+  },
   messageApi: { send: (...args: unknown[]) => send(...args) },
 }));
 
@@ -36,6 +41,7 @@ describe("useSendMessage", () => {
   afterEach(() => {
     push.mockReset();
     create.mockReset();
+    update.mockReset();
     send.mockReset();
     useComposerStore.setState({
       text: "",
@@ -117,5 +123,54 @@ describe("useSendMessage", () => {
         triggerRunId: "tr_1",
       });
     });
+  });
+
+  it("creates a new chat on the current project", async () => {
+    const projectId = "4993369f-c375-4ee7-90d8-5ea27aa09d6b";
+    create.mockResolvedValue({
+      id: chatId,
+      title: "from the project",
+      isFavorite: false,
+      projectId,
+      lastMessageAt: "2026-09-23T10:00:00.000Z",
+      lastMessageId: null,
+      createdAt: "2026-09-23T10:00:00.000Z",
+      updatedAt: "2026-09-23T10:00:00.000Z",
+    });
+    send.mockResolvedValue({
+      chatId,
+      messageId: "aaaaaaaa-1111-1111-1111-111111111111",
+      runId: "bbbbbbbb-1111-1111-1111-111111111111",
+    });
+    useComposerStore.setState({ text: "from the project" });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useSendMessage(undefined, projectId), { wrapper: wrap(client) });
+
+    await act(async () => {
+      await result.current.mutateAsync();
+    });
+
+    expect(create).toHaveBeenCalledWith({ title: "from the project", projectId });
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("attaches an existing draft chat to the project", async () => {
+    const projectId = "4993369f-c375-4ee7-90d8-5ea27aa09d6b";
+    update.mockResolvedValue({ id: chatId, projectId });
+    send.mockResolvedValue({
+      chatId,
+      messageId: "aaaaaaaa-1111-1111-1111-111111111111",
+      runId: "bbbbbbbb-1111-1111-1111-111111111111",
+    });
+    useComposerStore.setState({ text: "continue draft", draftChatId: chatId });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useSendMessage(undefined, projectId), { wrapper: wrap(client) });
+
+    await act(async () => {
+      await result.current.mutateAsync();
+    });
+
+    expect(create).not.toHaveBeenCalled();
+    expect(update).toHaveBeenCalledWith(chatId, { projectId });
   });
 });

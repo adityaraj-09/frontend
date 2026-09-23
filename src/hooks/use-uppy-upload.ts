@@ -6,6 +6,7 @@ import Transloadit from "@uppy/transloadit";
 import { useQueryClient } from "@tanstack/react-query";
 import { chatApi, uploadApi } from "@/lib/api/services";
 import { queryKeys } from "@/lib/query/keys";
+import { resolveProjectId } from "@/lib/project-route";
 import { useComposerStore } from "@/stores/composer";
 
 /** Mirrors backend Community-plan caps. Transloadit uploads over tus (`@uppy/tus`). */
@@ -38,10 +39,11 @@ function emitter(uppy: Uppy): Emitter {
   return uppy as unknown as Emitter;
 }
 
-export function useUppyUpload(chatId?: string) {
+export function useUppyUpload(chatId?: string, projectId?: string) {
   const queryClient = useQueryClient();
   const uppyRef = useRef<Uppy | null>(null);
   const chatIdRef = useRef(chatId);
+  const projectIdRef = useRef(projectId);
   const draftChatId = useComposerStore((s) => s.draftChatId);
   const setDraftChatId = useComposerStore((s) => s.setDraftChatId);
   const addAttachmentIds = useComposerStore((s) => s.addAttachmentIds);
@@ -50,6 +52,7 @@ export function useUppyUpload(chatId?: string) {
   const setError = useComposerStore((s) => s.setError);
 
   chatIdRef.current = chatId ?? draftChatId ?? undefined;
+  projectIdRef.current = projectId;
 
   const ensureUppy = useCallback((): Uppy => {
     if (uppyRef.current) return uppyRef.current;
@@ -72,7 +75,10 @@ export function useUppyUpload(chatId?: string) {
       assemblyOptions: async () => {
         let target = chatIdRef.current;
         if (!target) {
-          const created = await chatApi.create({ title: "New chat" });
+          const created = await chatApi.create({
+            title: "New chat",
+            projectId: resolveProjectId(projectIdRef.current),
+          });
           target = created.id;
           chatIdRef.current = target;
           setDraftChatId(target);

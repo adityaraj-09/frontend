@@ -6,11 +6,12 @@ import { useRouter } from "next/navigation";
 import { chatApi, messageApi } from "@/lib/api/services";
 import { ApiError } from "@/lib/api/client";
 import { queryKeys } from "@/lib/query/keys";
+import { resolveProjectId } from "@/lib/project-route";
 import { seedPendingMessages } from "@/hooks/use-messages";
 import { useComposerStore } from "@/stores/composer";
 import { useRunSessionStore } from "@/stores/run-session";
 
-export function useSendMessage(chatId?: string) {
+export function useSendMessage(chatId?: string, projectId?: string) {
   const router = useRouter();
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
@@ -32,13 +33,16 @@ export function useSendMessage(chatId?: string) {
       const files = [...attachmentIds];
       const planning = planMode;
       let targetId = chatId ?? draftChatId ?? undefined;
+      const ownedProjectId = resolveProjectId(projectId);
       if (!targetId) {
         const created = await chatApi.create({
           title: trimmed.slice(0, 80),
-          projectId: projectIdFromLocation(),
+          projectId: ownedProjectId,
         });
         targetId = created.id;
         queryClient.setQueryData(queryKeys.chat(created.id), created);
+      } else if (!chatId && ownedProjectId) {
+        await chatApi.update(targetId, { projectId: ownedProjectId });
       }
 
       const pending = {
@@ -71,6 +75,7 @@ export function useSendMessage(chatId?: string) {
         messageId: sent.messageId,
       });
       void queryClient.invalidateQueries({ queryKey: ["chats"] });
+      void queryClient.invalidateQueries({ queryKey: ["projects"] });
       void queryClient.invalidateQueries({ queryKey: queryKeys.messages(sent.chatId) });
       void queryClient.invalidateQueries({ queryKey: queryKeys.me });
     },
@@ -137,10 +142,3 @@ function mimeFromName(name: string): string {
   return "image/png";
 }
 
-function projectIdFromLocation(): string | undefined {
-  if (typeof window === "undefined") return undefined;
-  const fromQuery = new URLSearchParams(window.location.search).get("projectId");
-  const fromPath = window.location.pathname.match(/^\/projects\/([0-9a-f-]{36})/i)?.[1];
-  const id = fromQuery || fromPath;
-  return id && /^[0-9a-f-]{36}$/i.test(id) ? id : undefined;
-}
