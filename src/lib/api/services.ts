@@ -56,6 +56,12 @@ export const chatApi = {
   remove(chatId: string) {
     return apiJson(`/api/chats/${chatId}`, z.null(), { method: "DELETE" });
   },
+  fork(chatId: string, messageId: string) {
+    return apiJson(`/api/chats/${chatId}/fork`, chatSchema, {
+      method: "POST",
+      body: JSON.stringify({ messageId }),
+    });
+  },
 };
 
 export const messageApi = {

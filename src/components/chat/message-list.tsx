@@ -2,7 +2,11 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Check, ChevronDown, Copy, Globe, Loader2, Sparkles, Terminal, ThumbsDown, ThumbsUp, Wrench, Zap } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+import { Check, ChevronDown, Copy, GitFork, Globe, Loader2, Sparkles, Terminal, ThumbsDown, ThumbsUp, Wrench, Zap } from "lucide-react";
+import { chatApi } from "@/lib/api/services";
+import { ForkTaskDialog } from "./fork-task-dialog";
 import type { ContentBlock, Message, RunSnapshot } from "@/lib/api/schemas";
 import { parseBlocks } from "@/hooks/use-messages";
 import { formatDuration, formatTurnUsage, liveStepLabel, toolLabel } from "@/lib/format";
@@ -286,6 +290,8 @@ function AssistantTurn({
       ))}
       {!live && (text || assets.length) ? (
         <ReplyActions
+          chatId={message.chatId}
+          messageId={message.id}
           text={text}
           createdAt={message.createdAt}
           usage={message.usage ?? (snapshot?.assistantMessageId === message.id ? snapshot.usage : undefined)}
@@ -476,10 +482,14 @@ function WebSearchBody({ output, input }: { output: unknown; input: unknown }) {
 }
 
 function ReplyActions({
+  chatId,
+  messageId,
   text,
   createdAt,
   usage,
 }: {
+  chatId: string;
+  messageId: string;
   text: string;
   createdAt: string;
   usage?: {
@@ -490,8 +500,12 @@ function ReplyActions({
     durationMs?: number | null;
   } | null;
 }) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
   const [vote, setVote] = useState<"up" | "down" | null>(null);
+  const [forkOpen, setForkOpen] = useState(false);
+  const [forking, setForking] = useState(false);
 
   async function copy() {
     try {
@@ -500,6 +514,18 @@ function ReplyActions({
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
       setCopied(false);
+    }
+  }
+
+  async function fork() {
+    setForking(true);
+    try {
+      const created = await chatApi.fork(chatId, messageId);
+      setForkOpen(false);
+      await queryClient.invalidateQueries({ queryKey: ["chats"] });
+      router.push(`/chat/${created.id}`);
+    } finally {
+      setForking(false);
     }
   }
 
@@ -526,8 +552,17 @@ function ReplyActions({
       >
         <ThumbsDown className="size-3.5" />
       </button>
+      <button
+        type="button"
+        aria-label="Fork task"
+        className="hover:text-foreground"
+        onClick={() => setForkOpen(true)}
+      >
+        <GitFork className="size-3.5" strokeWidth={1.75} />
+      </button>
       <span className="text-[12px]">{messageClock(createdAt)}</span>
       {usage ? <span className="text-[12px]">{formatTurnUsage(usage)}</span> : null}
+      <ForkTaskDialog open={forkOpen} onOpenChange={setForkOpen} onConfirm={fork} busy={forking} />
     </div>
   );
 }

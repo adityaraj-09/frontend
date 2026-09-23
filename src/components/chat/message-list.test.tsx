@@ -1,9 +1,15 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeAll, describe, expect, it } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { createElement, type ReactNode } from "react";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { applyLiveAssistant } from "@/hooks/use-messages";
 import { MessageList } from "./message-list";
 import type { Message } from "@/lib/api/schemas";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
 
 beforeAll(() => {
   for (const [prop, value] of [
@@ -20,6 +26,11 @@ beforeAll(() => {
     });
   }
 });
+
+function view(ui: ReactNode) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(createElement(QueryClientProvider, { client }, ui));
+}
 
 function msg(id: string, role: "USER" | "ASSISTANT", text: string): Message {
   return {
@@ -44,7 +55,7 @@ describe("MessageList", () => {
         `Turn ${index}`,
       ),
     );
-    render(
+    view(
       <div style={{ height: 640 }}>
         <MessageList messages={messages} streamText="" hasEarlier />
       </div>,
@@ -58,7 +69,7 @@ describe("MessageList", () => {
     const message = msg("aaaaaaaa-1111-1111-1111-111111111111", "ASSISTANT", "");
     message.status = "STREAMING";
     message.contentBlocks = [];
-    render(
+    view(
       <div style={{ height: 640 }}>
         <MessageList
           messages={[message]}
@@ -72,7 +83,7 @@ describe("MessageList", () => {
 
   it("renders assistant markdown once when the stream repeats the saved text", () => {
     const text = "1. **Analyze the image**";
-    render(
+    view(
       <div style={{ height: 640 }}>
         <MessageList
           messages={[msg("aaaaaaaa-1111-1111-1111-111111111111", "ASSISTANT", text)]}
@@ -85,7 +96,7 @@ describe("MessageList", () => {
     expect(screen.getByText("Analyze the image").tagName).toBe("STRONG");
   });
 
-  it("shows turn cost and token usage on a finished reply", () => {
+  it("shows turn cost and token usage on a finished reply", async () => {
     const message = msg("aaaaaaaa-1111-1111-1111-111111111111", "ASSISTANT", "Done");
     message.usage = {
       promptTokens: 12,
@@ -94,12 +105,16 @@ describe("MessageList", () => {
       model: "deepseek/deepseek-r1:free",
       durationMs: 2400,
     };
-    render(
+    view(
       <div style={{ height: 640 }}>
         <MessageList messages={[message]} streamText="" />
       </div>,
     );
     expect(screen.getByText("2.4s · 20 tokens · 0 credits · deepseek-r1")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Fork task" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Fork task" }));
+    expect(screen.getByRole("heading", { name: "Fork task" })).toBeInTheDocument();
+    expect(screen.getByText("Fork from this message")).toBeInTheDocument();
   });
 
   it("shows the uploaded image inside the user bubble", () => {
@@ -113,7 +128,7 @@ describe("MessageList", () => {
         status: "COMPLETE",
       },
     ];
-    render(
+    view(
       <div style={{ height: 640 }}>
         <MessageList messages={[message]} streamText="" />
       </div>,
@@ -145,7 +160,7 @@ describe("MessageList", () => {
         text: `Here's a mountain landscape:\n\n![](${url})\n\nSnowy peaks and a lake.`,
       },
     ];
-    render(
+    view(
       <div style={{ height: 640 }}>
         <MessageList messages={[message]} streamText="" />
       </div>,
@@ -183,7 +198,7 @@ describe("MessageList", () => {
         ],
       },
     });
-    render(
+    view(
       <div style={{ height: 640 }}>
         <MessageList
           messages={live}
@@ -202,7 +217,7 @@ describe("MessageList", () => {
     const message = msg("aaaaaaaa-1111-1111-1111-111111111111", "ASSISTANT", "");
     message.status = "STREAMING";
     message.contentBlocks = [];
-    render(
+    view(
       <div style={{ height: 640 }}>
         <MessageList
           messages={[message]}
@@ -233,7 +248,7 @@ describe("MessageList", () => {
         filename: "out.png",
       },
     ];
-    render(
+    view(
       <div style={{ height: 640 }}>
         <MessageList
           messages={[message]}
@@ -268,7 +283,7 @@ describe("MessageList", () => {
     current.status = "STREAMING";
     current.createdAt = "2026-09-21T10:01:00.000Z";
     current.contentBlocks = [];
-    render(
+    view(
       <div style={{ height: 640 }}>
         <MessageList
           messages={[
