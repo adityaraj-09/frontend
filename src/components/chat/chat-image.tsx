@@ -128,6 +128,7 @@ export function ImagePreviewDialog({
   const [localFavorite, setLocalFavorite] = useState(false);
   const [copied, setCopied] = useState<"prompt" | "link" | null>(null);
   const [size, setSize] = useState<string>("");
+  const [ratio, setRatio] = useState<number>();
   const favoriteIds = useLibraryFavorites((s) => s.ids);
   const toggleFavorite = useLibraryFavorites((s) => s.toggle);
   const favorited = attachmentId ? favoriteIds.includes(attachmentId) : localFavorite;
@@ -148,16 +149,16 @@ export function ImagePreviewDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/35 p-6 md:p-10" onClick={onClose}>
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/35 p-4 md:p-6" onClick={onClose}>
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Image Preview"
-        className="flex h-[min(800px,92vh)] w-[min(1180px,96vw)] overflow-hidden rounded-[28px] bg-background shadow-[0_24px_80px_rgba(0,0,0,0.18)]"
+        className="flex h-[min(960px,94vh)] w-[min(1180px,96vw)] overflow-hidden rounded-[28px] bg-background shadow-[0_24px_80px_rgba(0,0,0,0.18)]"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex min-w-0 flex-1 flex-col px-8 pt-7 pb-8">
-          <div className="flex items-center justify-between gap-4">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col px-8 pt-7 pb-8">
+          <div className="flex shrink-0 items-center justify-between gap-4">
             <div className="text-[16px] font-semibold tracking-[-0.02em] text-foreground">Image Preview</div>
             <div className="flex items-center gap-2">
               <button
@@ -187,47 +188,62 @@ export function ImagePreviewDialog({
               </button>
             </div>
           </div>
-          <div className="mt-4 flex min-h-0 flex-1 items-center justify-center">
-            <div className="relative max-h-full max-w-full">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={src}
-                alt={name}
-                className="max-h-full max-w-full rounded-2xl object-contain"
-                onLoad={(event) => {
-                  const image = event.currentTarget;
-                  if (image.naturalWidth) setSize(`${image.naturalWidth} X ${image.naturalHeight}`);
-                }}
-              />
-              <div className="absolute top-3 right-3 flex items-center gap-2">
-                <button
-                  type="button"
-                  aria-label={copied === "link" ? "Copied link" : "Copy link"}
-                  className="flex size-9 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm hover:bg-muted"
-                  onClick={() => void copy(src, "link")}
-                >
-                  <Link2 className="size-4" />
-                </button>
-                <button
-                  type="button"
-                  aria-label="Download image"
-                  className="flex size-9 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm hover:bg-muted"
-                  onClick={() => void downloadImage(src, name)}
-                >
-                  <Download className="size-4" />
-                </button>
-                <button
-                  type="button"
-                  aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
-                  aria-pressed={favorited}
-                  className="flex size-9 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm hover:bg-muted"
-                  onClick={() => {
-                    if (attachmentId) toggleFavorite(attachmentId);
-                    else setLocalFavorite((value) => !value);
+          <div className="@container relative mt-4 min-h-0 flex-1">
+            <div className="flex h-full w-full items-center justify-center">
+              <div
+                className="relative max-h-full max-w-full"
+                style={
+                  ratio
+                    ? {
+                        aspectRatio: String(ratio),
+                        width: `min(100cqw, calc(100cqh * ${ratio}))`,
+                        height: `min(100cqh, calc(100cqw / ${ratio}))`,
+                      }
+                    : undefined
+                }
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={src}
+                  alt={name}
+                  className={cn("rounded-2xl object-contain", ratio ? "h-full w-full" : "max-h-full max-w-full")}
+                  onLoad={(event) => {
+                    const image = event.currentTarget;
+                    if (!image.naturalWidth) return;
+                    setSize(`${image.naturalWidth} X ${image.naturalHeight}`);
+                    setRatio(image.naturalWidth / image.naturalHeight);
                   }}
-                >
-                  <Heart className={cn("size-4", favorited && "fill-foreground")} />
-                </button>
+                />
+                <div className="absolute top-3 right-3 flex items-center gap-2">
+                  <button
+                    type="button"
+                    aria-label={copied === "link" ? "Copied link" : "Copy link"}
+                    className="flex size-9 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm hover:bg-muted"
+                    onClick={() => void copy(src, "link")}
+                  >
+                    <Link2 className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Download image"
+                    className="flex size-9 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm hover:bg-muted"
+                    onClick={() => void downloadImage(src, name)}
+                  >
+                    <Download className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
+                    aria-pressed={favorited}
+                    className="flex size-9 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm hover:bg-muted"
+                    onClick={() => {
+                      if (attachmentId) toggleFavorite(attachmentId);
+                      else setLocalFavorite((value) => !value);
+                    }}
+                  >
+                    <Heart className={cn("size-4", favorited && "fill-foreground")} />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
